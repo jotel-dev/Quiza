@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Wallet, X, Coins, ChevronRight, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { connectWallet, ensureNetwork, stakeCelo, stakeCUSD } from "../lib/quizaContract";
 
 const TOKENS = [
   { symbol: "CELO", name: "Celo", color: "#F59E0B", balance: 4.2318 },
@@ -13,23 +14,37 @@ const WIN_MULTIPLIER = 1.5;
 export default function StakeModal({ isOpen, onClose, onStartQuiz }) {
   const [walletState, setWalletState] = useState("disconnected"); // disconnected | connecting | connected
   const [address, setAddress] = useState(null);
+  const [signer, setSigner] = useState(null);
   const [selectedToken, setSelectedToken] = useState(TOKENS[1]); // default cUSD
   const [txState, setTxState] = useState("idle"); // idle | staking | staked | error
 
-  const handleConnect = () => {
+  const handleConnect = async () => {
     setWalletState("connecting");
-    setTimeout(() => {
+    try {
+      const { signer, address } = await connectWallet();
+      await ensureNetwork("alfajores"); 
+      setSigner(signer);
+      setAddress(address.slice(0, 6) + "..." + address.slice(-4));
       setWalletState("connected");
-      setAddress("0x8f3a...9cE1");
-    }, 1200);
+    } catch (error) {
+      console.error("Wallet connection failed:", error);
+      setWalletState("disconnected");
+    }
   };
 
-  const handleStake = () => {
+  const handleStake = async () => {
     setTxState("staking");
-    setTimeout(() => {
-      // Simulated success — real version calls stakeCelo() or stakeToken(cUSD, amount)
+    try {
+      if (selectedToken.symbol === "CELO") {
+        await stakeCelo(signer, STAKE_AMOUNT.toString(), "alfajores");
+      } else {
+        await stakeCUSD(signer, STAKE_AMOUNT.toString(), "alfajores");
+      }
       setTxState("staked");
-    }, 1600);
+    } catch (error) {
+      console.error("Staking failed:", error);
+      setTxState("idle");
+    }
   };
 
   if (!isOpen) return null;
