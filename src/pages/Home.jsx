@@ -7,7 +7,7 @@ import {
 import { motion } from 'framer-motion';
 import GlassCard from '../components/GlassCard';
 import StatCard from '../components/StatCard';
-import StakeModal from '../components/StakeModal';
+import { useOutletContext } from 'react-router-dom';
 
 const categories = [
   { icon: FlaskConical, label: "Science", count: 120, color: "#4F46E5" },
@@ -28,8 +28,7 @@ const popularQuizzes = [
 ];
 
 export default function Home() {
-  const navigate = useNavigate();
-  const [isStakeModalOpen, setIsStakeModalOpen] = useState(false);
+  const { setIsStakeModalOpen } = useOutletContext();
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-5">
@@ -208,11 +207,6 @@ export default function Home() {
         </GlassCard>
       </motion.div>
 
-      <StakeModal 
-        isOpen={isStakeModalOpen} 
-        onClose={() => setIsStakeModalOpen(false)} 
-        onStartQuiz={() => navigate('/quiz')} 
-      />
     </div>
   );
 }
