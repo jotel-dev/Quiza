@@ -164,10 +164,11 @@ export default function StakeModal({ isOpen, onClose, onStartQuiz }) {
 
             <button
               onClick={handleStake}
-              className="w-full mt-5 flex items-center justify-center gap-2 bg-[#4F46E5] text-white text-sm font-semibold py-3 rounded-xl shadow-md shadow-indigo-200 hover:opacity-90 transition active:scale-95"
+              disabled={parseFloat(selectedToken.balance) < STAKE_AMOUNT}
+              className="w-full mt-5 flex items-center justify-center gap-2 bg-[#4F46E5] text-white text-sm font-semibold py-3 rounded-xl shadow-md shadow-indigo-200 hover:opacity-90 transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Stake & Start Quiz
-              <ChevronRight size={15} />
+              {parseFloat(selectedToken.balance) < STAKE_AMOUNT ? "Insufficient Balance" : "Stake & Start Quiz"}
+              {parseFloat(selectedToken.balance) >= STAKE_AMOUNT && <ChevronRight size={15} />}
             </button>
           </div>
         )}
