@@ -10,8 +10,8 @@
     "preview": "vite preview",
     "compile": "hardhat compile",
     "test": "hardhat test",
-    "deploy:testnet": "hardhat run scripts/deploy.cjs --network alfajores",
-    "deploy:mainnet": "hardhat run scripts/deploy.cjs --network celo",
+    "deploy:testnet": "hardhat run scripts/deploy.js --network alfajores",
+    "deploy:mainnet": "hardhat run scripts/deploy.js --network celo",
     "verify:testnet": "hardhat verify --network alfajores",
     "verify:mainnet": "hardhat verify --network celo"
   },

@@ -1,11 +1,11 @@
-// scripts/deploy.cjs
+// scripts/deploy.js
 // Deploys Quiza.sol to whichever network Hardhat is pointed at.
 //
 // Usage:
-//   npx hardhat run scripts/deploy.cjs --network alfajores
-//   npx hardhat run scripts/deploy.cjs --network celo
+//   npx hardhat run scripts/deploy.js --network alfajores
+//   npx hardhat run scripts/deploy.js --network celo
 
-const hre = require("hardhat");
+import hre from "hardhat";
 
 // cUSD token addresses (fixed, published by Celo — do not change)
 const CUSD_ADDRESS = {
