@@ -17,6 +17,7 @@ export default function StakeModal({ isOpen, onClose, onStartQuiz }) {
   const [signer, setSigner] = useState(null);
   const [selectedToken, setSelectedToken] = useState(TOKENS[1]); // default cUSD
   const [txState, setTxState] = useState("idle"); // idle | staking | staked | error
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleConnect = async () => {
     setWalletState("connecting");
@@ -34,6 +35,7 @@ export default function StakeModal({ isOpen, onClose, onStartQuiz }) {
 
   const handleStake = async () => {
     setTxState("staking");
+    setErrorMessage("");
     try {
       if (selectedToken.symbol === "CELO") {
         await stakeCelo(signer, STAKE_AMOUNT.toString(), "mainnet");
@@ -43,7 +45,8 @@ export default function StakeModal({ isOpen, onClose, onStartQuiz }) {
       setTxState("staked");
     } catch (error) {
       console.error("Staking failed:", error);
-      setTxState("idle");
+      setErrorMessage(error?.message || "Transaction failed or was rejected.");
+      setTxState("error");
     }
   };
 
@@ -155,6 +158,21 @@ export default function StakeModal({ isOpen, onClose, onStartQuiz }) {
             >
               Stake & Start Quiz
               <ChevronRight size={15} />
+            </button>
+          </div>
+        )}
+
+        {/* ERROR STATE */}
+        {txState === "error" && (
+          <div className="text-center py-4">
+            <AlertCircle size={44} className="mx-auto text-red-500 mb-3" />
+            <h2 className="text-lg font-bold text-slate-800">Transaction Failed</h2>
+            <p className="text-xs text-slate-500 mt-2 break-words">{errorMessage}</p>
+            <button
+              onClick={() => setTxState("idle")}
+              className="w-full mt-5 bg-slate-100 text-slate-700 text-sm font-semibold py-3 rounded-xl hover:bg-slate-200 transition"
+            >
+              Try Again
             </button>
           </div>
         )}
