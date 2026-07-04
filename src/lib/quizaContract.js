@@ -3,7 +3,7 @@
 // Uses ethers.js v6. Works with MiniPay's injected provider (window.ethereum) directly —
 // MiniPay auto-connects and injects a standard EIP-1193 provider.
 
-import { BrowserProvider, Contract, parseEther, parseUnits } from "ethers";
+import { BrowserProvider, Contract, parseEther, parseUnits, formatEther } from "ethers";
 
 // --- Network config -----------------------------------------------------
 export const CELO_NETWORKS = {
@@ -92,6 +92,17 @@ export async function ensureNetwork(network = "alfajores") {
 
 function getContract(signer, network = "alfajores") {
   return new Contract(QUIZA_CONTRACT_ADDRESS[network], QUIZA_ABI, signer);
+}
+
+export async function getWalletBalances(provider, address, network = "alfajores") {
+  const celoBalance = await provider.getBalance(address);
+  const cusd = new Contract(CUSD_ADDRESS[network], ERC20_ABI, provider);
+  const cusdBalance = await cusd.balanceOf(address);
+  
+  return {
+    CELO: parseFloat(formatEther(celoBalance)).toFixed(4),
+    cUSD: parseFloat(formatEther(cusdBalance)).toFixed(4),
+  };
 }
 
 // --- Staking ----------------------------------------------------------
