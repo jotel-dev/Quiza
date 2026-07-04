@@ -1,0 +1,169 @@
+// src/lib/quizaContract.js
+// Frontend integration layer connecting Quiza's UI to the Quiza.sol contract on Celo.
+// Uses ethers.js v6. Works with MiniPay's injected provider (window.ethereum) directly —
+// MiniPay auto-connects and injects a standard EIP-1193 provider.
+
+import { BrowserProvider, Contract, parseEther, parseUnits } from "ethers";
+
+// --- Network config -----------------------------------------------------
+export const CELO_NETWORKS = {
+  alfajores: {
+    chainId: "0xaef3", // 44787
+    chainName: "Celo Alfajores Testnet",
+    rpcUrls: ["https://alfajores-forno.celo-testnet.org"],
+    nativeCurrency: { name: "CELO", symbol: "CELO", decimals: 18 },
+    blockExplorerUrls: ["https://alfajores.celoscan.io"],
+  },
+  mainnet: {
+    chainId: "0xa4ec", // 42220
+    chainName: "Celo Mainnet",
+    rpcUrls: ["https://forno.celo.org"],
+    nativeCurrency: { name: "CELO", symbol: "CELO", decimals: 18 },
+    blockExplorerUrls: ["https://celoscan.io"],
+  },
+};
+
+// Fill these in after deployment (see docs/DEPLOY.md)
+export const QUIZA_CONTRACT_ADDRESS = {
+  alfajores: "0xYOUR_TESTNET_CONTRACT_ADDRESS",
+  mainnet: "0xYOUR_MAINNET_CONTRACT_ADDRESS",
+};
+
+// cUSD token addresses (fixed, published by Celo)
+export const CUSD_ADDRESS = {
+  alfajores: "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1",
+  mainnet: "0x765DE816845861e75A25fCA122bb6898B8B1282a",
+};
+
+// Minimal ABI — only the functions/events the frontend needs
+export const QUIZA_ABI = [
+  "function stakeCelo() external payable returns (uint256 roundId)",
+  "function stakeToken(address token, uint256 amount) external returns (uint256 roundId)",
+  "function withdraw(address token) external",
+  "function balances(address player, address token) external view returns (uint256)",
+  "function rounds(uint256 roundId) external view returns (address player, address token, uint256 amount, bool resolved, bool won)",
+  "event Staked(uint256 indexed roundId, address indexed player, address token, uint256 amount)",
+  "event Resolved(uint256 indexed roundId, address indexed player, bool won, uint256 payout)",
+];
+
+const ERC20_ABI = [
+  "function approve(address spender, uint256 amount) external returns (bool)",
+  "function allowance(address owner, address spender) external view returns (uint256)",
+  "function balanceOf(address owner) external view returns (uint256)",
+];
+
+// --- Connection -----------------------------------------------------------
+
+/**
+ * Connects to the wallet injected by MiniPay (or any EIP-1193 wallet as fallback).
+ * Returns { provider, signer, address }.
+ */
+export async function connectWallet() {
+  if (!window.ethereum) {
+    throw new Error("No wallet found. Open this app inside MiniPay or install a Celo-compatible wallet.");
+  }
+  const provider = new BrowserProvider(window.ethereum);
+  await provider.send("eth_requestAccounts", []);
+  const signer = await provider.getSigner();
+  const address = await signer.getAddress();
+  return { provider, signer, address };
+}
+
+/** Ensures the wallet is on the expected Celo network, prompting a switch if not. */
+export async function ensureNetwork(network = "alfajores") {
+  const cfg = CELO_NETWORKS[network];
+  try {
+    await window.ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: cfg.chainId }],
+    });
+  } catch (switchError) {
+    // Chain not added yet — add it
+    if (switchError.code === 4902) {
+      await window.ethereum.request({
+        method: "wallet_addEthereumChain",
+        params: [cfg],
+      });
+    } else {
+      throw switchError;
+    }
+  }
+}
+
+function getContract(signer, network = "alfajores") {
+  return new Contract(QUIZA_CONTRACT_ADDRESS[network], QUIZA_ABI, signer);
+}
+
+// --- Staking ----------------------------------------------------------
+
+/** Stake native CELO to start a round. Returns the transaction receipt. */
+export async function stakeCelo(signer, amountInCelo = "0.01", network = "alfajores") {
+  const contract = getContract(signer, network);
+  const tx = await contract.stakeCelo({ value: parseEther(amountInCelo) });
+  const receipt = await tx.wait();
+  return receipt;
+}
+
+/** Stake cUSD — requires an approval step first since it's an ERC20. */
+export async function stakeCUSD(signer, amountInCUSD = "0.01", network = "alfajores") {
+  const cusd = new Contract(CUSD_ADDRESS[network], ERC20_ABI, signer);
+  const amount = parseUnits(amountInCUSD, 18);
+  const owner = await signer.getAddress();
+
+  const allowance = await cusd.allowance(owner, QUIZA_CONTRACT_ADDRESS[network]);
+  if (allowance < amount) {
+    const approveTx = await cusd.approve(QUIZA_CONTRACT_ADDRESS[network], amount);
+    await approveTx.wait();
+  }
+
+  const contract = getContract(signer, network);
+  const tx = await contract.stakeToken(CUSD_ADDRESS[network], amount);
+  const receipt = await tx.wait();
+  return receipt;
+}
+
+/** Extracts the roundId from a stake transaction receipt's Staked event. */
+export function getRoundIdFromReceipt(receipt, network = "alfajores") {
+  const iface = new Contract(QUIZA_CONTRACT_ADDRESS[network], QUIZA_ABI).interface;
+  for (const log of receipt.logs) {
+    try {
+      const parsed = iface.parseLog(log);
+      if (parsed.name === "Staked") return parsed.args.roundId;
+    } catch {
+      // not a Quiza event, skip
+    }
+  }
+  return null;
+}
+
+// --- Payout -------------------------------------------------------------
+
+/** Withdraws any accumulated winnings for a given token. */
+export async function withdrawWinnings(signer, tokenAddress, network = "alfajores") {
+  const contract = getContract(signer, network);
+  const tx = await contract.withdraw(tokenAddress);
+  return tx.wait();
+}
+
+/** Reads a player's withdrawable balance for a token (CELO_NATIVE = zero address). */
+export async function getBalance(provider, playerAddress, tokenAddress, network = "alfajores") {
+  const contract = new Contract(QUIZA_CONTRACT_ADDRESS[network], QUIZA_ABI, provider);
+  return contract.balances(playerAddress, tokenAddress);
+}
+
+// --- Calling the backend verifier after a quiz round --------------------
+
+/**
+ * After the player finishes answering, submit their answers to our backend
+ * to be checked against the source-of-truth question bank. The backend then
+ * calls resolve(roundId, won) on-chain using the trusted verifier key.
+ */
+export async function submitRoundForVerification({ roundId, questionIds, submittedAnswers }) {
+  const res = await fetch("/api/verify-round", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ roundId: roundId.toString(), questionIds, submittedAnswers }),
+  });
+  if (!res.ok) throw new Error("Verification request failed");
+  return res.json(); // { won: boolean, correctCount: number, txHash: string }
+}
