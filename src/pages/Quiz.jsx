@@ -115,11 +115,13 @@ export default function Quiz() {
     setTimeout(goNext, 800);
   };
 
-  if (status === "done") {
-    // Navigate immediately to Results screen, matching previous app flow
-    useEffect(() => {
+  useEffect(() => {
+    if (status === "done") {
       navigate('/results', { state: { score, total: gameQuestions.length, correct: correctCount, wrong: wrongCount } });
-    }, []);
+    }
+  }, [status, navigate, score, gameQuestions.length, correctCount, wrongCount]);
+
+  if (status === "done") {
     return null;
   }
 
