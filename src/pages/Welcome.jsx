@@ -19,7 +19,7 @@ export default function Welcome() {
         className="max-w-md w-full"
       >
         <GlassCard className="p-8 flex flex-col items-center text-center bg-white/60">
-          <div className="w-16 h-16 rounded-2xl bg-[#4F46E5] flex items-center justify-center shadow-lg shadow-indigo-200 mb-6">
+          <div className="w-16 h-16 rounded-2xl bg-[#0A4C86] flex items-center justify-center shadow-lg shadow-blue-200 mb-6">
             <span className="text-white text-3xl font-black">?</span>
           </div>
           
@@ -33,7 +33,7 @@ export default function Welcome() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => navigate('/home')}
-              className="w-full flex items-center justify-center gap-3 bg-[#4F46E5] text-white font-semibold py-3.5 rounded-xl shadow-md shadow-indigo-200"
+              className="w-full flex items-center justify-center gap-3 bg-[#0A4C86] text-white font-semibold py-3.5 rounded-xl shadow-md shadow-blue-200"
             >
               <Wallet size={18} />
               Connect Wallet

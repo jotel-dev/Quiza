@@ -4,9 +4,9 @@ import { Clock, X, Check, SkipForward, Zap } from "lucide-react";
 import questionData from "../data/questions.json";
 
 const CATEGORY_COLORS = {
-  "Math": "#4F46E5",
+  "Math": "#0A4C86",
   "Geography": "#10B981",
-  "History": "#F59E0B",
+  "History": "#F26722",
   "General Knowledge": "#EF4444",
   "Web3": "#8B5CF6"
 };
@@ -24,7 +24,7 @@ const TIME_PER_QUESTION = 15;
 
 function ConfettiBurst() {
   const pieces = Array.from({ length: 16 });
-  const colors = ["#4F46E5", "#F59E0B", "#10B981", "#EF4444"];
+  const colors = ["#0A4C86", "#F26722", "#10B981", "#EF4444"];
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden">
       {pieces.map((_, i) => {
@@ -54,7 +54,7 @@ export default function Quiz() {
   const gameQuestions = useMemo(() => {
     return shuffleArray(questionData.questions)
       .slice(0, 10)
-      .map(q => ({ ...q, color: CATEGORY_COLORS[q.category] || "#4F46E5" }));
+      .map(q => ({ ...q, color: CATEGORY_COLORS[q.category] || "#0A4C86" }));
   }, []);
   const [current, setCurrent] = useState(0);
   const [selected, setSelected] = useState(null);
@@ -126,7 +126,7 @@ export default function Quiz() {
   }
 
   const timerPct = (timeLeft / TIME_PER_QUESTION) * 100;
-  const timerColor = timeLeft <= 5 ? "#EF4444" : "#4F46E5";
+  const timerColor = timeLeft <= 5 ? "#EF4444" : "#0A4C86";
 
   return (
     <div className="min-h-screen w-full bg-white flex items-center justify-center font-sans p-4 relative">
@@ -196,7 +196,7 @@ export default function Quiz() {
         {/* Progress bar */}
         <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden mb-2">
           <div
-            className="h-full bg-[#4F46E5] rounded-full transition-all duration-500 ease-out"
+            className="h-full bg-[#0A4C86] rounded-full transition-all duration-500 ease-out"
             style={{ width: `${progressPct}%` }}
           />
         </div>
@@ -224,7 +224,7 @@ export default function Quiz() {
             {q.options.map((opt, idx) => {
               const isSelected = selected === idx;
               const isCorrectAnswer = idx === q.answer;
-              let stateClasses = "bg-white border-slate-150 text-slate-700 hover:border-[#4F46E5]/40 hover:bg-indigo-50/40";
+              let stateClasses = "bg-white border-slate-150 text-slate-700 hover:border-[#0A4C86]/40 hover:bg-blue-50/40";
 
               if (status !== "active") {
                 if (isCorrectAnswer) {
@@ -257,7 +257,7 @@ export default function Quiz() {
 
           <div className="flex items-center justify-between mt-6">
             <div className="flex items-center gap-1.5 text-xs text-slate-400">
-              <Zap size={12} className="text-[#F59E0B]" />
+              <Zap size={12} className="text-[#F26722]" />
               Score: <span className="font-bold text-slate-600">{score}</span>
             </div>
             <button

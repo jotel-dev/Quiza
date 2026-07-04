@@ -23,7 +23,7 @@ export default function Leaderboard() {
         <GlassCard className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-extrabold text-slate-800">Leaderboard</h1>
-            <div className="bg-indigo-50 text-[#4F46E5] text-xs font-bold px-3 py-1.5 rounded-full">
+            <div className="bg-blue-50 text-[#0A4C86] text-xs font-bold px-3 py-1.5 rounded-full">
               Global
             </div>
           </div>
@@ -39,16 +39,16 @@ export default function Leaderboard() {
               >
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 shadow-sm
-                    ${i === 0 ? "bg-[#F59E0B]" : i === 1 ? "bg-slate-400" : i === 2 ? "bg-orange-300" : "bg-slate-200 text-slate-500"}`}
+                    ${i === 0 ? "bg-[#F26722]" : i === 1 ? "bg-slate-400" : i === 2 ? "bg-orange-300" : "bg-slate-200 text-slate-500"}`}
                 >
                   {i + 1}
                 </div>
-                <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
-                  <User size={18} className="text-[#4F46E5]" />
+                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                  <User size={18} className="text-[#0A4C86]" />
                 </div>
                 <p className="text-sm font-semibold text-slate-700 flex-1 truncate">{p.name}</p>
                 <div className="flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-full">
-                  <TrendingUp size={14} className="text-[#F59E0B]" />
+                  <TrendingUp size={14} className="text-[#F26722]" />
                   <span className="text-sm font-extrabold text-slate-700">{p.score}</span>
                 </div>
               </motion.div>

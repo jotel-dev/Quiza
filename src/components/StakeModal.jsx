@@ -3,8 +3,8 @@ import { Wallet, X, Coins, ChevronRight, Loader2, CheckCircle2, AlertCircle } fr
 import { connectWallet, ensureNetwork, stakeCelo, stakeCUSD, getWalletBalances } from "../lib/quizaContract";
 
 const INITIAL_TOKENS = [
-  { symbol: "CELO", name: "Celo", color: "#F59E0B", balance: "0.0000" },
-  { symbol: "cUSD", name: "Celo Dollar", color: "#4F46E5", balance: "0.0000" },
+  { symbol: "CELO", name: "Celo", color: "#F26722", balance: "0.0000" },
+  { symbol: "cUSD", name: "Celo Dollar", color: "#0A4C86", balance: "0.0000" },
 ];
 
 const STAKE_AMOUNT = 0.01;
@@ -89,8 +89,8 @@ export default function StakeModal({ isOpen, onClose, onStartQuiz }) {
         {/* STEP 1: Wallet not connected */}
         {walletState !== "connected" && (
           <div className="text-center py-2">
-            <div className="w-14 h-14 mx-auto rounded-2xl bg-[#4F46E5]/10 flex items-center justify-center mb-4">
-              <Wallet size={26} className="text-[#4F46E5]" />
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-[#0A4C86]/10 flex items-center justify-center mb-4">
+              <Wallet size={26} className="text-[#0A4C86]" />
             </div>
             <h2 className="text-lg font-bold text-slate-800">Connect your wallet</h2>
             <p className="text-sm text-slate-400 mt-1.5 leading-relaxed">
@@ -99,7 +99,7 @@ export default function StakeModal({ isOpen, onClose, onStartQuiz }) {
             <button
               onClick={handleConnect}
               disabled={walletState === "connecting"}
-              className="w-full mt-5 flex items-center justify-center gap-2 bg-[#4F46E5] text-white text-sm font-semibold py-3 rounded-xl shadow-md shadow-indigo-200 hover:opacity-90 transition active:scale-95 disabled:opacity-70"
+              className="w-full mt-5 flex items-center justify-center gap-2 bg-[#0A4C86] text-white text-sm font-semibold py-3 rounded-xl shadow-md shadow-blue-200 hover:opacity-90 transition active:scale-95 disabled:opacity-70"
             >
               {walletState === "connecting" ? (
                 <>
@@ -124,7 +124,7 @@ export default function StakeModal({ isOpen, onClose, onStartQuiz }) {
             <p className="text-sm text-slate-400 mt-1">
               Score {" "}
               <span className="font-semibold text-slate-600">7/10 or higher</span> to win{" "}
-              <span className="font-semibold text-[#4F46E5]">{WIN_MULTIPLIER}x</span> your stake back.
+              <span className="font-semibold text-[#0A4C86]">{WIN_MULTIPLIER}x</span> your stake back.
             </p>
 
             <div className="grid grid-cols-2 gap-3 mt-4">
@@ -136,7 +136,7 @@ export default function StakeModal({ isOpen, onClose, onStartQuiz }) {
                     onClick={() => setSelectedToken(t)}
                     className={`rounded-2xl border p-3.5 text-left transition-all ${
                       isSelected
-                        ? "border-[#4F46E5] bg-indigo-50/60 shadow-[0_0_0_3px_rgba(79,70,229,0.1)]"
+                        ? "border-[#0A4C86] bg-blue-50/60 shadow-[0_0_0_3px_rgba(79,70,229,0.1)]"
                         : "border-slate-150 bg-white hover:border-slate-300"
                     }`}
                   >
@@ -165,7 +165,7 @@ export default function StakeModal({ isOpen, onClose, onStartQuiz }) {
             <button
               onClick={handleStake}
               disabled={parseFloat(selectedToken.balance) < STAKE_AMOUNT}
-              className="w-full mt-5 flex items-center justify-center gap-2 bg-[#4F46E5] text-white text-sm font-semibold py-3 rounded-xl shadow-md shadow-indigo-200 hover:opacity-90 transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full mt-5 flex items-center justify-center gap-2 bg-[#0A4C86] text-white text-sm font-semibold py-3 rounded-xl shadow-md shadow-blue-200 hover:opacity-90 transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {parseFloat(selectedToken.balance) < STAKE_AMOUNT ? "Insufficient Balance" : "Stake & Start Quiz"}
               {parseFloat(selectedToken.balance) >= STAKE_AMOUNT && <ChevronRight size={15} />}
@@ -191,7 +191,7 @@ export default function StakeModal({ isOpen, onClose, onStartQuiz }) {
         {/* STEP 3: Staking in progress */}
         {txState === "staking" && (
           <div className="text-center py-6">
-            <Loader2 size={32} className="mx-auto text-[#4F46E5] animate-spin-slow" />
+            <Loader2 size={32} className="mx-auto text-[#0A4C86] animate-spin-slow" />
             <h2 className="text-base font-bold text-slate-800 mt-4">Confirming stake...</h2>
             <p className="text-sm text-slate-400 mt-1">
               Staking {STAKE_AMOUNT} {selectedToken.symbol} on Celo
@@ -209,7 +209,7 @@ export default function StakeModal({ isOpen, onClose, onStartQuiz }) {
             </p>
             <button 
               onClick={onStartQuiz}
-              className="w-full mt-5 bg-[#4F46E5] text-white text-sm font-semibold py-3 rounded-xl shadow-md shadow-indigo-200 hover:opacity-90 transition active:scale-95"
+              className="w-full mt-5 bg-[#0A4C86] text-white text-sm font-semibold py-3 rounded-xl shadow-md shadow-blue-200 hover:opacity-90 transition active:scale-95"
             >
               Start Quiz →
             </button>

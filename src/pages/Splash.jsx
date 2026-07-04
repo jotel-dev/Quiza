@@ -14,7 +14,7 @@ export default function Splash() {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-[#4F46E5] overflow-hidden relative">
+    <div className="min-h-screen w-full flex items-center justify-center bg-[#0A4C86] overflow-hidden relative">
       {/* Background decorations */}
       <div className="absolute top-10 left-10 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
       <div className="absolute bottom-10 right-10 w-40 h-40 bg-orange-400/20 rounded-full blur-3xl" />
@@ -31,7 +31,7 @@ export default function Splash() {
         className="flex flex-col items-center gap-4"
       >
         <div className="w-20 h-20 rounded-3xl bg-white flex items-center justify-center shadow-[0_0_40px_rgba(255,255,255,0.3)]">
-          <span className="text-[#4F46E5] text-4xl font-black">?</span>
+          <span className="text-[#0A4C86] text-4xl font-black">?</span>
         </div>
         <motion.div 
           initial={{ y: 20, opacity: 0 }}

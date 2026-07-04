@@ -23,7 +23,7 @@ function useCountUp(target, durationMs = 900, start = true) {
 
 function ConfettiField() {
   const pieces = Array.from({ length: 30 });
-  const colors = ["#4F46E5", "#F59E0B", "#10B981", "#EF4444"];
+  const colors = ["#0A4C86", "#F26722", "#10B981", "#EF4444"];
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden">
       {pieces.map((_, i) => (
@@ -106,7 +106,7 @@ export default function Results() {
             className={`w-24 h-24 rounded-full flex items-center justify-center shadow-lg ${showTrophy ? "animate-trophy" : "opacity-0"}`}
             style={{
               background: RESULT.won
-                ? "linear-gradient(135deg, #F59E0B, #FBBF24)"
+                ? "linear-gradient(135deg, #F26722, #FBBF24)"
                 : "linear-gradient(135deg, #94A3B8, #CBD5E1)",
               boxShadow: RESULT.won ? "0 10px 30px rgba(245,158,11,0.35)" : "0 10px 30px rgba(148,163,184,0.3)",
             }}
@@ -171,11 +171,11 @@ export default function Results() {
           <div
             className="mt-4 rounded-xl px-4 py-3.5 flex items-center justify-between"
             style={{
-              background: RESULT.won ? "linear-gradient(90deg, #EEF2FF, #FEF3E2)" : "#F8FAFC",
+              background: RESULT.won ? "linear-gradient(90deg, #F0F6FA, #FEF3E2)" : "#F8FAFC",
             }}
           >
             <div className="flex items-center gap-2.5">
-              <Coins size={18} className={RESULT.won ? "text-[#F59E0B]" : "text-slate-400"} />
+              <Coins size={18} className={RESULT.won ? "text-[#F26722]" : "text-slate-400"} />
               <div>
                 <p className="text-xs text-slate-400 font-medium">
                   {RESULT.won ? "You won" : "Stake"}
@@ -186,7 +186,7 @@ export default function Results() {
               </div>
             </div>
             {RESULT.won && (
-              <span className="text-[10px] font-bold text-[#4F46E5] bg-[#4F46E5]/10 px-2.5 py-1 rounded-full">
+              <span className="text-[10px] font-bold text-[#0A4C86] bg-[#0A4C86]/10 px-2.5 py-1 rounded-full">
                 1.5x
               </span>
             )}
@@ -197,7 +197,7 @@ export default function Results() {
         <div className="flex items-center gap-3 mt-5 animate-fade-in" style={{ animationDelay: "0.6s" }}>
           <button 
             onClick={() => navigate('/quiz')}
-            className="flex-1 flex items-center justify-center gap-2 bg-[#4F46E5] text-white text-sm font-semibold py-3 rounded-xl shadow-md shadow-indigo-200 hover:opacity-90 transition active:scale-95"
+            className="flex-1 flex items-center justify-center gap-2 bg-[#0A4C86] text-white text-sm font-semibold py-3 rounded-xl shadow-md shadow-blue-200 hover:opacity-90 transition active:scale-95"
           >
             <RotateCcw size={15} />
             Play Again
