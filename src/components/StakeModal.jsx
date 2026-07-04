@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { Wallet, X, Coins, ChevronRight, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
-import { connectWallet, ensureNetwork, stakeCelo, stakeCUSD } from "../lib/quizaContract";
+import { connectWallet, ensureNetwork, stakeCelo, stakeCUSD, getWalletBalances } from "../lib/quizaContract";
 
-const TOKENS = [
-  { symbol: "CELO", name: "Celo", color: "#F59E0B", balance: 4.2318 },
-  { symbol: "cUSD", name: "Celo Dollar", color: "#4F46E5", balance: 12.5 },
+const INITIAL_TOKENS = [
+  { symbol: "CELO", name: "Celo", color: "#F59E0B", balance: "0.0000" },
+  { symbol: "cUSD", name: "Celo Dollar", color: "#4F46E5", balance: "0.0000" },
 ];
 
 const STAKE_AMOUNT = 0.01;
@@ -15,15 +15,25 @@ export default function StakeModal({ isOpen, onClose, onStartQuiz }) {
   const [walletState, setWalletState] = useState("disconnected"); // disconnected | connecting | connected
   const [address, setAddress] = useState(null);
   const [signer, setSigner] = useState(null);
-  const [selectedToken, setSelectedToken] = useState(TOKENS[1]); // default cUSD
+  const [tokens, setTokens] = useState(INITIAL_TOKENS);
+  const [selectedToken, setSelectedToken] = useState(INITIAL_TOKENS[1]); // default cUSD
   const [txState, setTxState] = useState("idle"); // idle | staking | staked | error
   const [errorMessage, setErrorMessage] = useState("");
 
   const handleConnect = async () => {
     setWalletState("connecting");
     try {
-      const { signer, address } = await connectWallet();
+      const { provider, signer, address } = await connectWallet();
       await ensureNetwork("mainnet"); 
+      
+      const balances = await getWalletBalances(provider, address, "mainnet");
+      const updatedTokens = [
+        { ...INITIAL_TOKENS[0], balance: balances.CELO },
+        { ...INITIAL_TOKENS[1], balance: balances.cUSD },
+      ];
+      setTokens(updatedTokens);
+      setSelectedToken(updatedTokens[1]);
+
       setSigner(signer);
       setAddress(address.slice(0, 6) + "..." + address.slice(-4));
       setWalletState("connected");
@@ -118,7 +128,7 @@ export default function StakeModal({ isOpen, onClose, onStartQuiz }) {
             </p>
 
             <div className="grid grid-cols-2 gap-3 mt-4">
-              {TOKENS.map((t) => {
+              {tokens.map((t) => {
                 const isSelected = selectedToken.symbol === t.symbol;
                 return (
                   <button
