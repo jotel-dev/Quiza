@@ -22,7 +22,7 @@ export default function StakeModal({ isOpen, onClose, onStartQuiz }) {
     setWalletState("connecting");
     try {
       const { signer, address } = await connectWallet();
-      await ensureNetwork("alfajores"); 
+      await ensureNetwork("mainnet"); 
       setSigner(signer);
       setAddress(address.slice(0, 6) + "..." + address.slice(-4));
       setWalletState("connected");
@@ -36,9 +36,9 @@ export default function StakeModal({ isOpen, onClose, onStartQuiz }) {
     setTxState("staking");
     try {
       if (selectedToken.symbol === "CELO") {
-        await stakeCelo(signer, STAKE_AMOUNT.toString(), "alfajores");
+        await stakeCelo(signer, STAKE_AMOUNT.toString(), "mainnet");
       } else {
-        await stakeCUSD(signer, STAKE_AMOUNT.toString(), "alfajores");
+        await stakeCUSD(signer, STAKE_AMOUNT.toString(), "mainnet");
       }
       setTxState("staked");
     } catch (error) {

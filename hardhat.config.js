@@ -23,12 +23,14 @@ const config = {
       chainId: 42220,
     },
   },
+  sourcify: {
+    enabled: false,
+  },
   etherscan: {
-    // Celoscan uses the same verification plugin interface as Etherscan
-    apiKey: {
-      alfajores: process.env.CELOSCAN_API_KEY || "",
-      celo: process.env.CELOSCAN_API_KEY || "",
-    },
+    // Etherscan V2 API: a single Etherscan.io API key now works across all
+    // supported chains (including Celo) via chainid-based routing.
+    // Falling back to CELOSCAN_API_KEY since that's what's currently in your .env
+    apiKey: process.env.ETHERSCAN_API_KEY || process.env.CELOSCAN_API_KEY || "",
     customChains: [
       {
         network: "alfajores",
@@ -46,6 +48,8 @@ const config = {
           browserURL: "https://celoscan.io",
         },
       },
+    ],
+  },
 };
 
 export default config;
