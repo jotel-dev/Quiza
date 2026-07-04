@@ -2,7 +2,7 @@ import React from 'react';
 import { Search, Bell, ChevronDown, User } from 'lucide-react';
 import ConnectWallet from './ConnectWallet';
 
-export default function Topbar() {
+export default function Topbar({ onConnectClick }) {
   return (
     <div className="flex items-center justify-between gap-4 mb-6 sticky top-0 bg-white/80 backdrop-blur-md z-30 py-2 -mx-2 px-2 rounded-2xl">
       <div className="flex-1 max-w-sm relative group">
@@ -17,7 +17,7 @@ export default function Topbar() {
           <Bell size={16} className="text-slate-500" />
           <span className="absolute top-1.5 right-2 w-1.5 h-1.5 rounded-full bg-[#EF4444]" />
         </button>
-        <ConnectWallet onClick={() => console.log("Connect Wallet clicked")} />
+        <ConnectWallet onClick={onConnectClick} />
         <button className="flex items-center gap-1.5 hover:bg-slate-50 rounded-full p-1 pr-2 transition-colors">
           <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center shadow-sm">
             <User size={14} className="text-[#4F46E5]" />
