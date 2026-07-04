@@ -1,10 +1,10 @@
-// hardhat.config.cjs
-require("@nomicfoundation/hardhat-toolbox");
-require("dotenv").config();
+import "@nomicfoundation/hardhat-toolbox";
+import * as dotenv from "dotenv";
+dotenv.config();
 
 const { DEPLOYER_PRIVATE_KEY } = process.env;
 
-module.exports = {
+const config = {
   solidity: {
     version: "0.8.20",
     settings: {
@@ -46,6 +46,6 @@ module.exports = {
           browserURL: "https://celoscan.io",
         },
       },
-    ],
-  },
 };
+
+export default config;
