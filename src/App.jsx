@@ -1,6 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { Loader2, Home, Grid3x3, Timer, Trophy, Gift, Award, Wallet, User, Settings } from "lucide-react";
+
+const nav = [
+  { icon: Home, label: "Home" },
+  { icon: Grid3x3, label: "Categories" },
+  { icon: Timer, label: "Daily Challenge" },
+  { icon: Trophy, label: "Leaderboard" },
+  { icon: Gift, label: "Rewards" },
+  { icon: Award, label: "Achievements" },
+  { icon: Wallet, label: "Wallet" },
+  { icon: User, label: "Profile" },
+  { icon: Settings, label: "Settings" },
+];
 
 import questionBank from "./data/questions.json";
 import {

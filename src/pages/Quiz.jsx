@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { Clock, X, Check, SkipForward, Zap } from "lucide-react";
 
 const TIME_PER_QUESTION = 15;
@@ -31,6 +32,7 @@ function ConfettiBurst() {
 }
 
 export default function Quiz({ roundQuestions, onRoundComplete }) {
+  const navigate = useNavigate();
   const [current, setCurrent] = useState(0);
   const [selected, setSelected] = useState(null);
   const [status, setStatus] = useState("active");
@@ -40,8 +42,14 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
   const [fadeKey, setFadeKey] = useState(0);
   const submittedAnswers = useRef([]);
   const hasAdvanced = useRef(false);
+  const correctCountRef = useRef(0);
+  const currentRef = useRef(0);
 
-  const q = roundQuestions[current];
+  const hasQuestions = roundQuestions && roundQuestions.length > 0;
+  const q = hasQuestions ? roundQuestions[current] : null;
+
+  currentRef.current = current;
+  correctCountRef.current = correctCount;
 
   const goNext = useCallback((chosenIdx) => {
     if (hasAdvanced.current) return;
@@ -49,9 +57,9 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
 
     const wasCorrect = chosenIdx === q.answer;
     submittedAnswers.current.push(chosenIdx);
-    const newCorrect = wasCorrect ? correctCount + 1 : correctCount;
+    const newCorrect = wasCorrect ? correctCountRef.current + 1 : correctCountRef.current;
 
-    if (current + 1 >= roundQuestions.length) {
+    if (currentRef.current + 1 >= roundQuestions.length) {
       onRoundComplete({
         correct: newCorrect,
         wrong: roundQuestions.length - newCorrect,
@@ -68,7 +76,7 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
     setTimeLeft(TIME_PER_QUESTION);
     setFadeKey((k) => k + 1);
     hasAdvanced.current = false;
-  }, [current, correctCount, roundQuestions, onRoundComplete, q]);
+  }, [q, roundQuestions, onRoundComplete]);
 
   useEffect(() => {
     if (status !== "active") return;
@@ -83,7 +91,7 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
   }, [timeLeft, status, goNext]);
 
   const handleAnswer = (idx) => {
-    if (status !== "active" || hasAdvanced.current) return;
+    if (status !== "active" || hasAdvanced.current || !q) return;
     setSelected(idx);
     const correct = idx === q.answer;
     setStatus(correct ? "correct" : "wrong");
@@ -95,7 +103,7 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
   };
 
   const handleSkip = () => {
-    if (status !== "active" || hasAdvanced.current) return;
+    if (status !== "active" || hasAdvanced.current || !q) return;
     setStatus("wrong");
     setSelected(-1);
     setTimeout(() => goNext(-1), 700);
@@ -103,6 +111,24 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
 
   const timerPct = (timeLeft / TIME_PER_QUESTION) * 100;
   const timerColor = timeLeft <= 5 ? "#EF4444" : "#0A4C86";
+
+  if (!hasQuestions) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-4">
+        <div className="text-center">
+          <p className="text-4xl mb-4">🤔</p>
+          <h2 className="text-lg font-bold text-slate-800 mb-2">No questions loaded</h2>
+          <p className="text-sm text-slate-400 mb-4">Please stake and start a quiz round first.</p>
+          <button
+            onClick={() => navigate("/")}
+            className="btn-primary px-5 py-2.5"
+          >
+            Go Home
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 flex items-center justify-center p-4">

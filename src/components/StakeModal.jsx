@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Wallet, X, Coins, ChevronRight, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { connectWallet, ensureNetwork, stakeCelo, stakeCUSD, getWalletBalances, getRoundIdFromReceipt, NETWORK } from "../lib/quizaContract";
 

@@ -1,7 +1,7 @@
-import { BrowserProvider, Contract, parseEther, parseUnits, formatEther, formatUnits } from "ethers";
+import { BrowserProvider, JsonRpcProvider, Contract, parseEther, parseUnits, formatEther, formatUnits } from "ethers";
 
 // --- Network config -----------------------------------------------------
-export const NETWORK = import.meta.env.VITE_QUIZA_NETWORK || "alfajores";
+export const NETWORK = import.meta.env.VITE_QUIZA_NETWORK || "mainnet";
 
 export const CELO_NETWORKS = {
   alfajores: {
@@ -98,9 +98,14 @@ export async function ensureNetwork(network = NETWORK) {
 
 /** Returns native CELO and cUSD balances for an address. */
 export async function getWalletBalances(provider, address, network = NETWORK) {
-  const cusd = new Contract(CUSD_ADDRESS[network], ERC20_ABI, provider);
-  const celoBalance = await provider.getBalance(address);
+  // Use a direct RPC provider to bypass wallet rate limits for read operations
+  const rpcUrl = CELO_NETWORKS[network].rpcUrls[0];
+  const directProvider = new JsonRpcProvider(rpcUrl);
+
+  const cusd = new Contract(CUSD_ADDRESS[network], ERC20_ABI, directProvider);
+  const celoBalance = await directProvider.getBalance(address);
   const cusdBalance = await cusd.balanceOf(address);
+  
   return {
     CELO: parseFloat(formatEther(celoBalance)).toFixed(4),
     cUSD: parseFloat(formatUnits(cusdBalance, 18)).toFixed(4),
