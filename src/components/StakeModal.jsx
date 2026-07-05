@@ -15,6 +15,7 @@ export default function StakeModal({ isOpen, onClose, onStartQuiz }) {
   const [walletState, setWalletState] = useState("disconnected"); // disconnected | connecting | connected
   const [address, setAddress] = useState(null);
   const [signer, setSigner] = useState(null);
+  const [isMiniPay, setIsMiniPay] = useState(false);
   const [tokens, setTokens] = useState(INITIAL_TOKENS);
   const [selectedToken, setSelectedToken] = useState(INITIAL_TOKENS[1]); // default cUSD
   const [txState, setTxState] = useState("idle"); // idle | staking | staked | error
@@ -23,7 +24,7 @@ export default function StakeModal({ isOpen, onClose, onStartQuiz }) {
   const handleConnect = async () => {
     setWalletState("connecting");
     try {
-      const { provider, signer, address } = await connectWallet();
+      const { provider, signer, address, isMiniPay } = await connectWallet();
       await ensureNetwork("mainnet"); 
       
       const balances = await getWalletBalances(provider, address, "mainnet");
@@ -36,6 +37,7 @@ export default function StakeModal({ isOpen, onClose, onStartQuiz }) {
 
       setSigner(signer);
       setAddress(address.slice(0, 6) + "..." + address.slice(-4));
+      setIsMiniPay(isMiniPay);
       setWalletState("connected");
     } catch (error) {
       console.error("Wallet connection failed:", error);
@@ -119,6 +121,11 @@ export default function StakeModal({ isOpen, onClose, onStartQuiz }) {
             <div className="flex items-center gap-2 mb-1">
               <div className="w-2 h-2 rounded-full bg-[#10B981]" />
               <span className="text-xs font-medium text-slate-400">{address}</span>
+              {isMiniPay && (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-[#0A4C86] ml-1">
+                  MiniPay
+                </span>
+              )}
             </div>
             <h2 className="text-lg font-bold text-slate-800 mt-2">Choose your stake</h2>
             <p className="text-sm text-slate-400 mt-1">

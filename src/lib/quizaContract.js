@@ -55,8 +55,16 @@ const ERC20_ABI = [
 // --- Connection -----------------------------------------------------------
 
 /**
+ * Checks if the user is currently inside the MiniPay webview.
+ * MiniPay injects window.ethereum and specifically sets isMiniPay to true.
+ */
+export function isMiniPayBrowser() {
+  return typeof window !== "undefined" && window.ethereum && window.ethereum.isMiniPay === true;
+}
+
+/**
  * Connects to the wallet injected by MiniPay (or any EIP-1193 wallet as fallback).
- * Returns { provider, signer, address }.
+ * Returns { provider, signer, address, isMiniPay }.
  */
 export async function connectWallet() {
   if (!window.ethereum) {
@@ -66,7 +74,8 @@ export async function connectWallet() {
   await provider.send("eth_requestAccounts", []);
   const signer = await provider.getSigner();
   const address = await signer.getAddress();
-  return { provider, signer, address };
+  const isMiniPay = isMiniPayBrowser();
+  return { provider, signer, address, isMiniPay };
 }
 
 /** Ensures the wallet is on the expected Celo network, prompting a switch if not. */
