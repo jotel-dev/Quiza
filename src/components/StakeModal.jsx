@@ -7,7 +7,7 @@ const INITIAL_TOKENS = [
   { symbol: "cUSD", name: "Celo Dollar", color: "#0A4C86", balance: "0.0000" },
 ];
 
-const STAKE_AMOUNT = 0.01;
+
 const WIN_MULTIPLIER = 1.5;
 
 export default function StakeModal({ isOpen, onClose, onStaked, onConnect, walletAddress }) {
@@ -22,6 +22,8 @@ export default function StakeModal({ isOpen, onClose, onStaked, onConnect, walle
   const [errorMessage, setErrorMessage] = useState("");
   const [roundId, setRoundId] = useState(null);
   const [username, setUsername] = useState(() => localStorage.getItem("quiza_username") || "");
+  
+  const stakeAmt = selectedToken.symbol === "cUSD" ? 0.001 : 0.01;
 
   useEffect(() => {
     if (walletAddress && !address) {
@@ -76,9 +78,9 @@ export default function StakeModal({ isOpen, onClose, onStaked, onConnect, walle
     try {
       let receipt;
       if (selectedToken.symbol === "CELO") {
-        receipt = await stakeCelo(signer, STAKE_AMOUNT.toString(), NETWORK);
+        receipt = await stakeCelo(signer, stakeAmt.toString(), NETWORK);
       } else {
-        receipt = await stakeCUSD(signer, STAKE_AMOUNT.toString(), NETWORK);
+        receipt = await stakeCUSD(signer, stakeAmt.toString(), NETWORK);
       }
       const newRoundId = getRoundIdFromReceipt(receipt, NETWORK);
       setRoundId(newRoundId);
@@ -216,17 +218,17 @@ export default function StakeModal({ isOpen, onClose, onStaked, onConnect, walle
             <div className="flex items-center justify-between bg-slate-50 rounded-xl px-4 py-3 mt-4">
               <span className="text-xs font-medium text-slate-400">Stake amount</span>
               <span className="text-sm font-bold text-slate-800">
-                {STAKE_AMOUNT} {selectedToken.symbol}
+                {stakeAmt} {selectedToken.symbol}
               </span>
             </div>
 
             <button
               onClick={handleStake}
-              disabled={parseFloat(selectedToken.balance) < STAKE_AMOUNT}
+              disabled={parseFloat(selectedToken.balance) < stakeAmt}
               className="w-full mt-5 flex items-center justify-center gap-2 bg-[#0A4C86] text-white text-sm font-semibold py-3 rounded-xl shadow-md shadow-blue-200 hover:opacity-90 transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {parseFloat(selectedToken.balance) < STAKE_AMOUNT ? "Insufficient Balance" : "Stake & Start Quiz"}
-              {parseFloat(selectedToken.balance) >= STAKE_AMOUNT && <ChevronRight size={15} />}
+              {parseFloat(selectedToken.balance) < stakeAmt ? "Insufficient Balance" : "Stake & Start Quiz"}
+              {parseFloat(selectedToken.balance) >= stakeAmt && <ChevronRight size={15} />}
             </button>
           </div>
         )}
@@ -252,7 +254,7 @@ export default function StakeModal({ isOpen, onClose, onStaked, onConnect, walle
             <Loader2 size={32} className="mx-auto text-[#0A4C86] animate-spin-slow" />
             <h2 className="text-base font-bold text-slate-800 mt-4">Confirming stake...</h2>
             <p className="text-sm text-slate-400 mt-1">
-              Staking {STAKE_AMOUNT} {selectedToken.symbol} on Celo
+              Staking {stakeAmt} {selectedToken.symbol} on Celo
             </p>
           </div>
         )}
@@ -263,7 +265,7 @@ export default function StakeModal({ isOpen, onClose, onStaked, onConnect, walle
             <CheckCircle2 size={44} className="mx-auto text-[#10B981]" />
             <h2 className="text-lg font-bold text-slate-800 mt-3">Stake confirmed!</h2>
             <p className="text-sm text-slate-400 mt-1">
-              {STAKE_AMOUNT} {selectedToken.symbol} locked in. Good luck!
+              {stakeAmt} {selectedToken.symbol} locked in. Good luck!
             </p>
             <button 
               onClick={() => onStaked({ token: selectedToken.symbol, roundId, address, signer })}
