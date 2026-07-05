@@ -209,6 +209,28 @@ export default function QuizaApp() {
         </aside>
       )}
 
+      {/* Mobile Bottom Navigation */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex justify-around p-2 z-50 pb-safe">
+        {nav.slice(0, 4).map(({ icon: Icon, label }) => {
+          const isActive = (label === "Home" && isHome) || (label === "Leaderboard" && location.pathname === "/leaderboard");
+          return (
+            <button
+              key={label}
+              onClick={() => {
+                if (label === "Leaderboard") { setScreen("leaderboard"); navigate("/leaderboard"); }
+                else if (label === "Home") { setScreen("home"); navigate("/"); }
+              }}
+              className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${
+                isActive ? "text-[#4F46E5] bg-indigo-50 dark:bg-indigo-900/30" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+              }`}
+            >
+              <Icon size={20} />
+              <span className="text-[10px] font-semibold">{label}</span>
+            </button>
+          );
+        })}
+      </div>
+
       <main className="flex-1 relative">
         <Routes>
           <Route path="/" element={<WelcomeScreen darkMode={darkMode} onToggleTheme={() => setDarkMode((d) => !d)} />} />

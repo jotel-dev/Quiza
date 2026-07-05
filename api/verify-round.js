@@ -1,5 +1,7 @@
 import { JsonRpcProvider, Wallet, Contract } from "ethers";
-import questionBank from "../src/data/questions.json" with { type: "json" };
+import fs from "fs";
+import path from "path";
+const questionBank = JSON.parse(fs.readFileSync(path.join(process.cwd(), "src/data/questions.json"), "utf8"));
 import { QUIZA_ABI, QUIZA_CONTRACT_ADDRESS, CELO_NETWORKS } from "../src/lib/quizaContract.js";
 import { db } from "./firebaseAdmin.js";
 import { FieldValue } from "firebase-admin/firestore";
@@ -46,8 +48,9 @@ export async function verifyAndResolve({ roundId, questionIds, submittedAnswers,
   let txHash = null;
   try {
     const tx = await contract.resolve(roundId, won);
-    const receipt = await tx.wait();
-    txHash = receipt.hash;
+    txHash = tx.hash;
+    // We intentionally DO NOT await tx.wait() here to avoid Vercel's 10-second function timeout.
+    // The transaction has been broadcasted and will be mined asynchronously.
   } catch (err) {
     if (err.message && (err.message.includes("Round already resolved") || err.message.includes("execution reverted"))) {
       console.warn(`Round ${roundId} is already resolved. Skipping on-chain tx.`);
