@@ -33,6 +33,14 @@ export default function StakeModal({ isOpen, onClose, onStaked, onConnect, walle
     }
   }, [walletAddress, address]);
 
+  useEffect(() => {
+    if (isOpen) {
+      setTxState("idle");
+      setRoundId(null);
+      setErrorMessage("");
+    }
+  }, [isOpen]);
+
   const handleConnect = async () => {
     setWalletState("connecting");
     try {
