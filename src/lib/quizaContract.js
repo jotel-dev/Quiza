@@ -80,6 +80,9 @@ export async function connectWallet() {
 
 /** Ensures the wallet is on the expected Celo network, prompting a switch if not. */
 export async function ensureNetwork(network = "alfajores") {
+  // MiniPay is fixed to Celo Mainnet and doesn't support network switching RPC calls.
+  if (isMiniPayBrowser()) return;
+
   const cfg = CELO_NETWORKS[network];
   try {
     await window.ethereum.request({

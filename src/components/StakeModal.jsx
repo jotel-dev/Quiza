@@ -41,6 +41,8 @@ export default function StakeModal({ isOpen, onClose, onStartQuiz }) {
       setWalletState("connected");
     } catch (error) {
       console.error("Wallet connection failed:", error);
+      setErrorMessage(error?.message || "Connection failed. Please try again.");
+      setTxState("error");
       setWalletState("disconnected");
     }
   };

@@ -6,9 +6,9 @@ export default function Splash() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Navigate to welcome screen after 2.5 seconds
+    // Navigate to home screen after 2.5 seconds
     const timer = setTimeout(() => {
-      navigate('/welcome');
+      navigate('/home');
     }, 2500);
     return () => clearTimeout(timer);
   }, [navigate]);

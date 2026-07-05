@@ -3,7 +3,6 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 
 import Splash from './pages/Splash';
-import Welcome from './pages/Welcome';
 import Home from './pages/Home';
 import Quiz from './pages/Quiz';
 import Results from './pages/Results';
@@ -16,7 +15,6 @@ function App() {
       <AnimatePresence mode="wait">
         <Routes>
           <Route path="/" element={<Splash />} />
-          <Route path="/welcome" element={<Welcome />} />
           
           {/* Main App Routes with Sidebar/Topbar */}
           <Route element={<MainLayout />}>
