@@ -36,12 +36,13 @@ const TOKENS = [
 ];
 
 function pickRoundQuestions() {
-  const shuffled = [...questionBank.questions];
-  for (let i = shuffled.length - 1; i > 0; i--) {
+  const arr = [...questionBank.questions];
+  // Fisher-Yates shuffle — unbiased, unlike sort(() => Math.random() - 0.5)
+  for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    [arr[i], arr[j]] = [arr[j], arr[i]];
   }
-  return shuffled.slice(0, QUESTIONS_PER_ROUND);
+  return arr.slice(0, QUESTIONS_PER_ROUND);
 }
 
 function GlassCard({ children, className = "" }) {
@@ -89,7 +90,7 @@ function StatCard({ label, value, icon: Icon, iconColor, iconBg }) {
   );
 }
 
-function HomeScreen({ onStartQuiz, stats, onWithdraw }) {
+function HomeScreen({ onStartQuiz, stats }) {
   return (
     <div className="flex-1 p-4 sm:p-6 overflow-y-auto">
       <div className="flex items-center justify-between gap-4 mb-6">
@@ -133,9 +134,9 @@ function HomeScreen({ onStartQuiz, stats, onWithdraw }) {
                   <Play size={14} fill="white" />
                   Start Quiz
                 </button>
-                <button onClick={onWithdraw} className="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-slate-50 transition active:scale-95">
-                  <Wallet size={14} />
-                  Withdraw Winnings
+                <button className="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-slate-50 transition active:scale-95">
+                  <Calendar size={14} />
+                  Daily Challenge
                 </button>
               </div>
             </div>
@@ -183,6 +184,7 @@ function StakeModal({ onClose, onStaked }) {
   const [selectedToken, setSelectedToken] = useState(TOKENS[1]);
   const [txState, setTxState] = useState("idle");
   const [errorMsg, setErrorMsg] = useState(null);
+  const [roundId, setRoundId] = useState(null);
 
   const handleConnect = async () => {
     setErrorMsg(null);
@@ -216,10 +218,9 @@ function StakeModal({ onClose, onStaked }) {
           ? await stakeCelo(signer, String(STAKE_AMOUNT), NETWORK)
           : await stakeCUSD(signer, String(STAKE_AMOUNT), NETWORK);
 
-      const roundId = getRoundIdFromReceipt(receipt, NETWORK);
+      const newRoundId = getRoundIdFromReceipt(receipt, NETWORK);
+      setRoundId(newRoundId);
       setTxState("staked");
-      // Give the "staked" confirmation a beat on screen before handing off
-      setTimeout(() => onStaked({ token: selectedToken.symbol, roundId, address }), 900);
     } catch (err) {
       console.error(err);
       setErrorMsg(err.message || "Staking transaction failed");
@@ -316,7 +317,7 @@ function StakeModal({ onClose, onStaked }) {
             <h2 className="text-lg font-bold text-slate-800 mt-3">Stake confirmed!</h2>
             <p className="text-sm text-slate-400 mt-1">{STAKE_AMOUNT} {selectedToken.symbol} locked in. Good luck!</p>
             <button
-              onClick={() => onStaked({ token: selectedToken.symbol })}
+              onClick={() => onStaked({ token: selectedToken.symbol, roundId, address, signer })}
               className="w-full mt-5 bg-[#4F46E5] text-white text-sm font-semibold py-3 rounded-xl shadow-md shadow-indigo-200 hover:opacity-90 transition active:scale-95"
             >
               Start Quiz →
@@ -357,21 +358,27 @@ function GameplayScreen({ roundQuestions, onRoundComplete }) {
   const [timeLeft, setTimeLeft] = useState(TIME_PER_QUESTION);
   const [correctCount, setCorrectCount] = useState(0);
   const [fadeKey, setFadeKey] = useState(0);
-  const [submittedAnswers, setSubmittedAnswers] = useState([]);
-  const hasAnswered = React.useRef(false);
+  const submittedAnswers = React.useRef([]); // one entry per question, in order
+  const hasAdvanced = React.useRef(false); // guards against double-advance race
 
   const q = roundQuestions[current];
   const progressPct = (current / roundQuestions.length) * 100;
 
-  const goNext = useCallback((wasCorrect, finalAnswers) => {
-    hasAnswered.current = false;
+  const goNext = useCallback((chosenIdx) => {
+    if (hasAdvanced.current) return; // already advancing — ignore duplicate trigger
+    hasAdvanced.current = true;
+
+    const wasCorrect = chosenIdx === q.answer;
+    submittedAnswers.current.push(chosenIdx);
     const newCorrect = wasCorrect ? correctCount + 1 : correctCount;
+
     if (current + 1 >= roundQuestions.length) {
-      onRoundComplete({ 
-        correct: newCorrect, 
-        wrong: roundQuestions.length - newCorrect, 
+      onRoundComplete({
+        correct: newCorrect,
+        wrong: roundQuestions.length - newCorrect,
         total: roundQuestions.length,
-        submittedAnswers: finalAnswers || submittedAnswers
+        questionIds: roundQuestions.map((rq) => rq.id),
+        submittedAnswers: submittedAnswers.current,
       });
       return;
     }
@@ -381,42 +388,34 @@ function GameplayScreen({ roundQuestions, onRoundComplete }) {
     setStatus("active");
     setTimeLeft(TIME_PER_QUESTION);
     setFadeKey((k) => k + 1);
-  }, [current, correctCount, roundQuestions, onRoundComplete, submittedAnswers]);
+    hasAdvanced.current = false; // unlock for the next question
+  }, [current, correctCount, roundQuestions, onRoundComplete, q]);
 
   React.useEffect(() => {
-    if (status !== "active" || hasAnswered.current) return;
+    if (status !== "active") return;
     if (timeLeft <= 0) {
-      hasAnswered.current = true;
       setStatus("wrong");
       setSelected(-1);
-      const newAnswers = [...submittedAnswers, -1];
-      setSubmittedAnswers(newAnswers);
-      const t = setTimeout(() => goNext(false, newAnswers), 1000);
+      const t = setTimeout(() => goNext(-1), 1000);
       return () => clearTimeout(t);
     }
     const t = setTimeout(() => setTimeLeft((s) => s - 1), 1000);
     return () => clearTimeout(t);
-  }, [timeLeft, status, goNext, submittedAnswers]);
+  }, [timeLeft, status, goNext]);
 
   const handleAnswer = (idx) => {
-    if (status !== "active" || hasAnswered.current) return;
-    hasAnswered.current = true;
+    if (status !== "active" || hasAdvanced.current) return;
     setSelected(idx);
     const correct = idx === q.answer;
     setStatus(correct ? "correct" : "wrong");
-    const newAnswers = [...submittedAnswers, idx];
-    setSubmittedAnswers(newAnswers);
-    setTimeout(() => goNext(correct, newAnswers), 1200);
+    setTimeout(() => goNext(idx), 1200);
   };
 
   const handleSkip = () => {
-    if (status !== "active" || hasAnswered.current) return;
-    hasAnswered.current = true;
+    if (status !== "active" || hasAdvanced.current) return;
     setStatus("wrong");
     setSelected(-1);
-    const newAnswers = [...submittedAnswers, -1];
-    setSubmittedAnswers(newAnswers);
-    setTimeout(() => goNext(false, newAnswers), 700);
+    setTimeout(() => goNext(-1), 700);
   };
 
   const timerPct = (timeLeft / TIME_PER_QUESTION) * 100;
@@ -529,11 +528,14 @@ function ConfettiField() {
   );
 }
 
-function ResultsScreen({ result, stakeInfo, onPlayAgain, isVerifying }) {
+function ResultsScreen({ result, stakeInfo, signer, onPlayAgain }) {
   const [showTrophy, setShowTrophy] = useState(false);
+  const [withdrawState, setWithdrawState] = useState("idle"); // idle | withdrawing | done | error
+  const [withdrawError, setWithdrawError] = useState(null);
+
   const accuracy = Math.round((result.correct / result.total) * 100);
-  const won = result.correct / result.total >= WIN_THRESHOLD;
-  const payout = won ? (STAKE_AMOUNT * WIN_MULTIPLIER).toFixed(4) : null;
+  const won = result.won; // authoritative — comes from the backend verifier, not recomputed here
+  const payout = result.payout;
   const scoreCount = useCountUp(result.correct * 10, 1000, showTrophy);
   const accuracyCount = useCountUp(accuracy, 1000, showTrophy);
 
@@ -541,6 +543,20 @@ function ResultsScreen({ result, stakeInfo, onPlayAgain, isVerifying }) {
     const t = setTimeout(() => setShowTrophy(true), 150);
     return () => clearTimeout(t);
   }, []);
+
+  const handleWithdraw = async () => {
+    setWithdrawError(null);
+    setWithdrawState("withdrawing");
+    try {
+      const tokenAddress = stakeInfo.token === "CELO" ? "0x0000000000000000000000000000000000000000" : CUSD_ADDRESS[NETWORK];
+      await withdrawWinnings(signer, tokenAddress, NETWORK);
+      setWithdrawState("done");
+    } catch (err) {
+      console.error(err);
+      setWithdrawError(err.message || "Withdrawal failed");
+      setWithdrawState("error");
+    }
+  };
 
   return (
     <div className="flex-1 flex items-center justify-center p-4 relative overflow-hidden">
@@ -566,11 +582,6 @@ function ResultsScreen({ result, stakeInfo, onPlayAgain, isVerifying }) {
         <div className="text-center animate-fade-in" style={{ animationDelay: "0.3s" }}>
           <h1 className="text-2xl font-extrabold text-slate-800">{won ? "Round complete! 🎉" : "So close — try again!"}</h1>
           <p className="text-sm text-slate-400 mt-1">{won ? "You beat the threshold and earned a payout." : "You didn't hit the win threshold this time."}</p>
-          {isVerifying && won && (
-            <p className="text-sm text-[#4F46E5] mt-2 font-semibold flex items-center justify-center gap-2">
-              <Loader2 size={14} className="animate-spin" /> Verifying payout on-chain...
-            </p>
-          )}
         </div>
 
         <div className="rounded-[22px] border border-white/60 shadow-[0_8px_30px_rgba(79,70,229,0.08)] backdrop-blur-xl bg-white/70 p-6 mt-6 animate-fade-in" style={{ animationDelay: "0.45s" }}>
@@ -612,6 +623,31 @@ function ResultsScreen({ result, stakeInfo, onPlayAgain, isVerifying }) {
             </div>
             {won && <span className="text-[10px] font-bold text-[#4F46E5] bg-[#4F46E5]/10 px-2.5 py-1 rounded-full">1.5x</span>}
           </div>
+
+          {won && (
+            <div className="mt-3">
+              {withdrawState !== "done" ? (
+                <button
+                  onClick={handleWithdraw}
+                  disabled={withdrawState === "withdrawing"}
+                  className="w-full flex items-center justify-center gap-2 bg-[#10B981] text-white text-sm font-semibold py-3 rounded-xl shadow-md shadow-emerald-200 hover:opacity-90 transition active:scale-95 disabled:opacity-70"
+                >
+                  {withdrawState === "withdrawing" ? (
+                    <><Loader2 size={15} className="animate-spin" />Withdrawing...</>
+                  ) : (
+                    <><Coins size={15} />Withdraw {payout} {stakeInfo.token}</>
+                  )}
+                </button>
+              ) : (
+                <div className="flex items-center justify-center gap-2 text-sm font-semibold text-[#10B981] py-2">
+                  <CheckCircle2 size={16} />Sent to your wallet!
+                </div>
+              )}
+              {withdrawError && (
+                <p className="text-xs text-[#EF4444] mt-2 text-center leading-relaxed">{withdrawError}</p>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-3 mt-5 animate-fade-in" style={{ animationDelay: "0.6s" }}>
@@ -631,67 +667,62 @@ function ResultsScreen({ result, stakeInfo, onPlayAgain, isVerifying }) {
 /*  APP SHELL — wires everything together                                */
 /* -------------------------------------------------------------------- */
 export default function QuizaApp() {
-  const [screen, setScreen] = useState("home"); // home | stake | play | results
+  const [screen, setScreen] = useState("home"); // home | stake | play | verifying | results
   const [roundQuestions, setRoundQuestions] = useState([]);
   const [stakeInfo, setStakeInfo] = useState(null);
+  const [signer, setSigner] = useState(null);
   const [result, setResult] = useState(null);
+  const [verifyError, setVerifyError] = useState(null);
   const [stats, setStats] = useState({ played: 0, bestScore: 0, accuracy: 0, streak: 0 });
-  const [isVerifying, setIsVerifying] = useState(false);
 
   const handleStartQuiz = () => setScreen("stake");
 
   const handleStaked = (info) => {
     setStakeInfo(info);
+    setSigner(info.signer);
     setRoundQuestions(pickRoundQuestions());
     setScreen("play");
   };
 
-  const handleRoundComplete = async (res) => {
-    setResult(res);
-    setScreen("results");
+  const handleRoundComplete = async ({ correct, wrong, total, questionIds, submittedAnswers }) => {
+    setScreen("verifying");
+    setVerifyError(null);
+    try {
+      // Backend checks answers against the real question bank and calls
+      // resolve() on-chain with the trusted verifier key — this is the
+      // authoritative result, not the client-side tally above.
+      const verified = await submitRoundForVerification({
+        roundId: stakeInfo.roundId,
+        questionIds,
+        submittedAnswers,
+      });
 
-    if (stakeInfo && stakeInfo.roundId) {
-       setIsVerifying(true);
-       try {
-          await submitRoundForVerification({
-            roundId: stakeInfo.roundId,
-            questionIds: roundQuestions.map(q => q.id),
-            submittedAnswers: res.submittedAnswers
-          });
-       } catch (err) {
-          console.error("Verification failed:", err);
-       }
-       setIsVerifying(false);
+      const payout = verified.won ? (STAKE_AMOUNT * WIN_MULTIPLIER).toFixed(4) : null;
+      setResult({ correct, wrong, total, won: verified.won, payout, txHash: verified.txHash });
+
+      setStats((s) => ({
+        played: s.played + 1,
+        bestScore: Math.max(s.bestScore, correct * 10),
+        accuracy: Math.round((correct / total) * 100),
+        streak: verified.won ? s.streak + 1 : 0,
+      }));
+      setScreen("results");
+    } catch (err) {
+      console.error(err);
+      setVerifyError(err.message || "Could not verify your round. Your stake is safe — please try again.");
     }
-
-    setStats((s) => ({
-      played: s.played + 1,
-      bestScore: Math.max(s.bestScore, res.correct * 10),
-      accuracy: Math.round((res.correct / res.total) * 100),
-      streak: res.correct / res.total >= WIN_THRESHOLD ? s.streak + 1 : 0,
-    }));
   };
 
   const handlePlayAgain = () => setScreen("home");
-
-  const handleWithdraw = async () => {
-    try {
-      const { signer } = await connectWallet();
-      // Using cUSD as default for simplicity, ideally user selects token to withdraw
-      await withdrawWinnings(signer, CUSD_ADDRESS[NETWORK], NETWORK);
-      alert("Withdrawn successfully!");
-    } catch (e) {
-      console.error(e);
-      alert("Failed to withdraw: " + e.message);
-    }
-  };
 
   return (
     <div className="min-h-screen w-full bg-white flex font-sans text-slate-800">
       {screen !== "play" && screen !== "results" && (
         <aside className="hidden lg:flex flex-col w-64 border-r border-slate-100 p-5 shrink-0">
           <div className="flex items-center gap-2 px-2 mb-8">
-            <img src="/logo.png" alt="Quiza Logo" className="w-10 h-10 object-contain" />
+            <div className="w-9 h-9 rounded-xl bg-[#4F46E5] flex items-center justify-center shadow-lg shadow-indigo-200">
+              <span className="text-white text-lg">?</span>
+            </div>
             <div className="leading-tight">
               <p className="font-extrabold text-[#4F46E5] text-sm tracking-tight">QUIZA</p>
               <p className="font-extrabold text-slate-800 text-sm tracking-tight -mt-1">QUEST</p>
@@ -707,13 +738,37 @@ export default function QuizaApp() {
         </aside>
       )}
 
-      {screen === "home" && <HomeScreen onStartQuiz={handleStartQuiz} stats={stats} onWithdraw={handleWithdraw} />}
+      {screen === "home" && <HomeScreen onStartQuiz={handleStartQuiz} stats={stats} />}
       {screen === "play" && <GameplayScreen roundQuestions={roundQuestions} onRoundComplete={handleRoundComplete} />}
-      {screen === "results" && <ResultsScreen result={result} stakeInfo={stakeInfo} onPlayAgain={handlePlayAgain} isVerifying={isVerifying} />}
+      {screen === "verifying" && (
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="text-center">
+            {verifyError ? (
+              <>
+                <p className="text-3xl mb-3">⚠️</p>
+                <p className="text-base font-bold text-slate-800">{verifyError}</p>
+                <button
+                  onClick={() => setScreen("home")}
+                  className="mt-4 bg-[#4F46E5] text-white text-sm font-semibold px-5 py-2.5 rounded-xl shadow-md shadow-indigo-200 hover:opacity-90 transition"
+                >
+                  Back to Home
+                </button>
+              </>
+            ) : (
+              <>
+                <Loader2 size={32} className="mx-auto text-[#4F46E5] animate-spin" />
+                <p className="text-base font-bold text-slate-800 mt-4">Verifying your round...</p>
+                <p className="text-sm text-slate-400 mt-1">Checking answers and confirming on-chain</p>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+      {screen === "results" && <ResultsScreen result={result} stakeInfo={stakeInfo} signer={signer} onPlayAgain={handlePlayAgain} />}
 
       {screen === "stake" && (
         <>
-          <HomeScreen onStartQuiz={handleStartQuiz} stats={stats} onWithdraw={handleWithdraw} />
+          <HomeScreen onStartQuiz={handleStartQuiz} stats={stats} />
           <StakeModal onClose={() => setScreen("home")} onStaked={handleStaked} />
         </>
       )}
