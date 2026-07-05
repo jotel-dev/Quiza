@@ -196,11 +196,11 @@ export async function getBalance(provider, playerAddress, tokenAddress, network 
  * to be checked against the source-of-truth question bank. The backend then
  * calls resolve(roundId, won) on-chain using the trusted verifier key.
  */
-export async function submitRoundForVerification({ roundId, questionIds, submittedAnswers }) {
+export async function submitRoundForVerification({ roundId, questionIds, submittedAnswers, address }) {
   const res = await fetch("/api/verify-round", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ roundId: roundId.toString(), questionIds, submittedAnswers }),
+    body: JSON.stringify({ roundId: roundId.toString(), questionIds, submittedAnswers, address }),
   });
   if (!res.ok) throw new Error("Verification request failed");
   return res.json(); // { won: boolean, correctCount: number, txHash: string }

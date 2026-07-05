@@ -53,7 +53,7 @@ export function scoreRound(questionIds, submittedAnswers) {
  * @param {{ roundId: string, questionIds: string[], submittedAnswers: number[] }} payload
  * @returns {{ won: boolean, correctCount: number, total: number, txHash: string }}
  */
-export async function verifyAndResolve({ roundId, questionIds, submittedAnswers }) {
+export async function verifyAndResolve({ roundId, questionIds, submittedAnswers, address }) {
   if (!VERIFIER_PRIVATE_KEY) {
     throw new Error("QUIZA_VERIFIER_PRIVATE_KEY is not set in environment");
   }
@@ -68,6 +68,39 @@ export async function verifyAndResolve({ roundId, questionIds, submittedAnswers 
 
   const tx = await contract.resolve(roundId, won);
   const receipt = await tx.wait();
+
+  // Record stats in DB
+  if (address) {
+    const pointsEarned = correctCount * 10;
+    const isWin = won ? 1 : 0;
+    
+    // Dynamic import to avoid circular dependency if needed, or normal import
+    const { default: db } = await import("./db.js");
+    
+    try {
+      const stmt = db.prepare(`
+        INSERT INTO players (address, totalPoints, correctAnswers, totalQuestions, gamesPlayed, streak, lastUpdated)
+        VALUES (@address, @points, @correct, @total, 1, @streak, @now)
+        ON CONFLICT(address) DO UPDATE SET 
+          totalPoints = totalPoints + @points,
+          correctAnswers = correctAnswers + @correct,
+          totalQuestions = totalQuestions + @total,
+          gamesPlayed = gamesPlayed + 1,
+          streak = CASE WHEN @streak = 1 THEN streak + 1 ELSE 0 END,
+          lastUpdated = @now
+      `);
+      stmt.run({
+        address,
+        points: pointsEarned,
+        correct: correctCount,
+        total,
+        streak: isWin,
+        now: Date.now()
+      });
+    } catch (e) {
+      console.error("Failed to record stats:", e);
+    }
+  }
 
   return { won, correctCount, total, txHash: receipt.hash };
 }
