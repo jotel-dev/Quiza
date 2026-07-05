@@ -36,7 +36,11 @@ const TOKENS = [
 ];
 
 function pickRoundQuestions() {
-  const shuffled = [...questionBank.questions].sort(() => Math.random() - 0.5);
+  const shuffled = [...questionBank.questions];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
   return shuffled.slice(0, QUESTIONS_PER_ROUND);
 }
 
@@ -85,7 +89,7 @@ function StatCard({ label, value, icon: Icon, iconColor, iconBg }) {
   );
 }
 
-function HomeScreen({ onStartQuiz, stats }) {
+function HomeScreen({ onStartQuiz, stats, onWithdraw }) {
   return (
     <div className="flex-1 p-4 sm:p-6 overflow-y-auto">
       <div className="flex items-center justify-between gap-4 mb-6">
@@ -129,9 +133,9 @@ function HomeScreen({ onStartQuiz, stats }) {
                   <Play size={14} fill="white" />
                   Start Quiz
                 </button>
-                <button className="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-slate-50 transition active:scale-95">
-                  <Calendar size={14} />
-                  Daily Challenge
+                <button onClick={onWithdraw} className="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-slate-50 transition active:scale-95">
+                  <Wallet size={14} />
+                  Withdraw Winnings
                 </button>
               </div>
             </div>
@@ -353,14 +357,22 @@ function GameplayScreen({ roundQuestions, onRoundComplete }) {
   const [timeLeft, setTimeLeft] = useState(TIME_PER_QUESTION);
   const [correctCount, setCorrectCount] = useState(0);
   const [fadeKey, setFadeKey] = useState(0);
+  const [submittedAnswers, setSubmittedAnswers] = useState([]);
+  const hasAnswered = React.useRef(false);
 
   const q = roundQuestions[current];
   const progressPct = (current / roundQuestions.length) * 100;
 
-  const goNext = useCallback((wasCorrect) => {
+  const goNext = useCallback((wasCorrect, finalAnswers) => {
+    hasAnswered.current = false;
     const newCorrect = wasCorrect ? correctCount + 1 : correctCount;
     if (current + 1 >= roundQuestions.length) {
-      onRoundComplete({ correct: newCorrect, wrong: roundQuestions.length - newCorrect, total: roundQuestions.length });
+      onRoundComplete({ 
+        correct: newCorrect, 
+        wrong: roundQuestions.length - newCorrect, 
+        total: roundQuestions.length,
+        submittedAnswers: finalAnswers || submittedAnswers
+      });
       return;
     }
     setCorrectCount(newCorrect);
@@ -369,33 +381,42 @@ function GameplayScreen({ roundQuestions, onRoundComplete }) {
     setStatus("active");
     setTimeLeft(TIME_PER_QUESTION);
     setFadeKey((k) => k + 1);
-  }, [current, correctCount, roundQuestions, onRoundComplete]);
+  }, [current, correctCount, roundQuestions, onRoundComplete, submittedAnswers]);
 
   React.useEffect(() => {
-    if (status !== "active") return;
+    if (status !== "active" || hasAnswered.current) return;
     if (timeLeft <= 0) {
+      hasAnswered.current = true;
       setStatus("wrong");
       setSelected(-1);
-      const t = setTimeout(() => goNext(false), 1000);
+      const newAnswers = [...submittedAnswers, -1];
+      setSubmittedAnswers(newAnswers);
+      const t = setTimeout(() => goNext(false, newAnswers), 1000);
       return () => clearTimeout(t);
     }
     const t = setTimeout(() => setTimeLeft((s) => s - 1), 1000);
     return () => clearTimeout(t);
-  }, [timeLeft, status, goNext]);
+  }, [timeLeft, status, goNext, submittedAnswers]);
 
   const handleAnswer = (idx) => {
-    if (status !== "active") return;
+    if (status !== "active" || hasAnswered.current) return;
+    hasAnswered.current = true;
     setSelected(idx);
     const correct = idx === q.answer;
     setStatus(correct ? "correct" : "wrong");
-    setTimeout(() => goNext(correct), 1200);
+    const newAnswers = [...submittedAnswers, idx];
+    setSubmittedAnswers(newAnswers);
+    setTimeout(() => goNext(correct, newAnswers), 1200);
   };
 
   const handleSkip = () => {
-    if (status !== "active") return;
+    if (status !== "active" || hasAnswered.current) return;
+    hasAnswered.current = true;
     setStatus("wrong");
     setSelected(-1);
-    setTimeout(() => goNext(false), 700);
+    const newAnswers = [...submittedAnswers, -1];
+    setSubmittedAnswers(newAnswers);
+    setTimeout(() => goNext(false, newAnswers), 700);
   };
 
   const timerPct = (timeLeft / TIME_PER_QUESTION) * 100;
@@ -508,7 +529,7 @@ function ConfettiField() {
   );
 }
 
-function ResultsScreen({ result, stakeInfo, onPlayAgain }) {
+function ResultsScreen({ result, stakeInfo, onPlayAgain, isVerifying }) {
   const [showTrophy, setShowTrophy] = useState(false);
   const accuracy = Math.round((result.correct / result.total) * 100);
   const won = result.correct / result.total >= WIN_THRESHOLD;
@@ -545,6 +566,11 @@ function ResultsScreen({ result, stakeInfo, onPlayAgain }) {
         <div className="text-center animate-fade-in" style={{ animationDelay: "0.3s" }}>
           <h1 className="text-2xl font-extrabold text-slate-800">{won ? "Round complete! 🎉" : "So close — try again!"}</h1>
           <p className="text-sm text-slate-400 mt-1">{won ? "You beat the threshold and earned a payout." : "You didn't hit the win threshold this time."}</p>
+          {isVerifying && won && (
+            <p className="text-sm text-[#4F46E5] mt-2 font-semibold flex items-center justify-center gap-2">
+              <Loader2 size={14} className="animate-spin" /> Verifying payout on-chain...
+            </p>
+          )}
         </div>
 
         <div className="rounded-[22px] border border-white/60 shadow-[0_8px_30px_rgba(79,70,229,0.08)] backdrop-blur-xl bg-white/70 p-6 mt-6 animate-fade-in" style={{ animationDelay: "0.45s" }}>
@@ -610,6 +636,7 @@ export default function QuizaApp() {
   const [stakeInfo, setStakeInfo] = useState(null);
   const [result, setResult] = useState(null);
   const [stats, setStats] = useState({ played: 0, bestScore: 0, accuracy: 0, streak: 0 });
+  const [isVerifying, setIsVerifying] = useState(false);
 
   const handleStartQuiz = () => setScreen("stake");
 
@@ -619,18 +646,45 @@ export default function QuizaApp() {
     setScreen("play");
   };
 
-  const handleRoundComplete = (res) => {
+  const handleRoundComplete = async (res) => {
     setResult(res);
+    setScreen("results");
+
+    if (stakeInfo && stakeInfo.roundId) {
+       setIsVerifying(true);
+       try {
+          await submitRoundForVerification({
+            roundId: stakeInfo.roundId,
+            questionIds: roundQuestions.map(q => q.id),
+            submittedAnswers: res.submittedAnswers
+          });
+       } catch (err) {
+          console.error("Verification failed:", err);
+       }
+       setIsVerifying(false);
+    }
+
     setStats((s) => ({
       played: s.played + 1,
       bestScore: Math.max(s.bestScore, res.correct * 10),
       accuracy: Math.round((res.correct / res.total) * 100),
       streak: res.correct / res.total >= WIN_THRESHOLD ? s.streak + 1 : 0,
     }));
-    setScreen("results");
   };
 
   const handlePlayAgain = () => setScreen("home");
+
+  const handleWithdraw = async () => {
+    try {
+      const { signer } = await connectWallet();
+      // Using cUSD as default for simplicity, ideally user selects token to withdraw
+      await withdrawWinnings(signer, CUSD_ADDRESS[NETWORK], NETWORK);
+      alert("Withdrawn successfully!");
+    } catch (e) {
+      console.error(e);
+      alert("Failed to withdraw: " + e.message);
+    }
+  };
 
   return (
     <div className="min-h-screen w-full bg-white flex font-sans text-slate-800">
@@ -653,13 +707,13 @@ export default function QuizaApp() {
         </aside>
       )}
 
-      {screen === "home" && <HomeScreen onStartQuiz={handleStartQuiz} stats={stats} />}
+      {screen === "home" && <HomeScreen onStartQuiz={handleStartQuiz} stats={stats} onWithdraw={handleWithdraw} />}
       {screen === "play" && <GameplayScreen roundQuestions={roundQuestions} onRoundComplete={handleRoundComplete} />}
-      {screen === "results" && <ResultsScreen result={result} stakeInfo={stakeInfo} onPlayAgain={handlePlayAgain} />}
+      {screen === "results" && <ResultsScreen result={result} stakeInfo={stakeInfo} onPlayAgain={handlePlayAgain} isVerifying={isVerifying} />}
 
       {screen === "stake" && (
         <>
-          <HomeScreen onStartQuiz={handleStartQuiz} stats={stats} />
+          <HomeScreen onStartQuiz={handleStartQuiz} stats={stats} onWithdraw={handleWithdraw} />
           <StakeModal onClose={() => setScreen("home")} onStaked={handleStaked} />
         </>
       )}
