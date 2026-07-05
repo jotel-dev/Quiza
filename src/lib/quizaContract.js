@@ -80,6 +80,11 @@ export async function ensureNetwork(network = NETWORK) {
   if (!window.ethereum) return;
   const cfg = CELO_NETWORKS[network];
   try {
+    const currentChainId = await window.ethereum.request({ method: "eth_chainId" });
+    if (currentChainId && currentChainId.toLowerCase() === cfg.chainId.toLowerCase()) {
+      return; // Already on the expected network
+    }
+
     await window.ethereum.request({
       method: "wallet_switchEthereumChain",
       params: [{ chainId: cfg.chainId }],
@@ -90,6 +95,8 @@ export async function ensureNetwork(network = NETWORK) {
         method: "wallet_addEthereumChain",
         params: [cfg],
       });
+    } else if (switchError.code === -32601) {
+      console.warn("Wallet doesn't support network switching (e.g., MiniPay). Assuming correct network.");
     } else {
       throw switchError;
     }
