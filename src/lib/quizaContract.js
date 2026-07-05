@@ -1,6 +1,8 @@
-import { BrowserProvider, Contract, parseEther, parseUnits } from "ethers";
+import { BrowserProvider, Contract, parseEther, parseUnits, formatEther, formatUnits } from "ethers";
 
 // --- Network config -----------------------------------------------------
+export const NETWORK = import.meta.env.VITE_QUIZA_NETWORK || "alfajores";
+
 export const CELO_NETWORKS = {
   alfajores: {
     chainId: "0xaef3", // 44787
@@ -51,7 +53,7 @@ const ERC20_ABI = [
 
 /**
  * Connects to the wallet injected by MiniPay (or any EIP-1193 wallet as fallback).
- * Returns { provider, signer, address }.
+ * Returns { provider, signer, address, isMiniPay }.
  */
 export async function connectWallet() {
   if (!window.ethereum) {
@@ -61,12 +63,21 @@ export async function connectWallet() {
   await provider.send("eth_requestAccounts", []);
   const signer = await provider.getSigner();
   const address = await signer.getAddress();
-  return { provider, signer, address };
+
+  let isMiniPay = false;
+  try {
+    const isMiniPayFlag = await window.ethereum.request({ method: "minipay_getIsMiniPay" });
+    isMiniPay = Boolean(isMiniPayFlag);
+  } catch {
+    isMiniPay = /MiniPay/i.test(navigator.userAgent);
+  }
+
+  return { provider, signer, address, isMiniPay };
 }
 
 /** Ensures the wallet is on the expected Celo network, prompting a switch if not. */
-export async function ensureNetwork(network = "alfajores") {
-  if (!window.ethereum) return; // let connectWallet() surface the "no wallet" error
+export async function ensureNetwork(network = NETWORK) {
+  if (!window.ethereum) return;
   const cfg = CELO_NETWORKS[network];
   try {
     await window.ethereum.request({
@@ -74,7 +85,6 @@ export async function ensureNetwork(network = "alfajores") {
       params: [{ chainId: cfg.chainId }],
     });
   } catch (switchError) {
-    // Chain not added yet — add it
     if (switchError.code === 4902) {
       await window.ethereum.request({
         method: "wallet_addEthereumChain",
@@ -86,14 +96,25 @@ export async function ensureNetwork(network = "alfajores") {
   }
 }
 
-function getContract(signer, network = "alfajores") {
+/** Returns native CELO and cUSD balances for an address. */
+export async function getWalletBalances(provider, address, network = NETWORK) {
+  const cusd = new Contract(CUSD_ADDRESS[network], ERC20_ABI, provider);
+  const celoBalance = await provider.getBalance(address);
+  const cusdBalance = await cusd.balanceOf(address);
+  return {
+    CELO: parseFloat(formatEther(celoBalance)).toFixed(4),
+    cUSD: parseFloat(formatUnits(cusdBalance, 18)).toFixed(4),
+  };
+}
+
+function getContract(signer, network = NETWORK) {
   return new Contract(QUIZA_CONTRACT_ADDRESS[network], QUIZA_ABI, signer);
 }
 
 // --- Staking ----------------------------------------------------------
 
 /** Stake native CELO to start a round. Returns the transaction receipt. */
-export async function stakeCelo(signer, amountInCelo = "0.01", network = "alfajores") {
+export async function stakeCelo(signer, amountInCelo = "0.01", network = NETWORK) {
   const contract = getContract(signer, network);
   const tx = await contract.stakeCelo({ value: parseEther(amountInCelo) });
   const receipt = await tx.wait();
@@ -101,7 +122,7 @@ export async function stakeCelo(signer, amountInCelo = "0.01", network = "alfajo
 }
 
 /** Stake cUSD — requires an approval step first since it's an ERC20. */
-export async function stakeCUSD(signer, amountInCUSD = "0.01", network = "alfajores") {
+export async function stakeCUSD(signer, amountInCUSD = "0.01", network = NETWORK) {
   const cusd = new Contract(CUSD_ADDRESS[network], ERC20_ABI, signer);
   const amount = parseUnits(amountInCUSD, 18);
   const owner = await signer.getAddress();
@@ -119,7 +140,7 @@ export async function stakeCUSD(signer, amountInCUSD = "0.01", network = "alfajo
 }
 
 /** Extracts the roundId from a stake transaction receipt's Staked event. */
-export function getRoundIdFromReceipt(receipt, network = "alfajores") {
+export function getRoundIdFromReceipt(receipt, network = NETWORK) {
   const iface = new Contract(QUIZA_CONTRACT_ADDRESS[network], QUIZA_ABI).interface;
   for (const log of receipt.logs) {
     try {
@@ -135,14 +156,14 @@ export function getRoundIdFromReceipt(receipt, network = "alfajores") {
 // --- Payout -------------------------------------------------------------
 
 /** Withdraws any accumulated winnings for a given token. */
-export async function withdrawWinnings(signer, tokenAddress, network = "alfajores") {
+export async function withdrawWinnings(signer, tokenAddress, network = NETWORK) {
   const contract = getContract(signer, network);
   const tx = await contract.withdraw(tokenAddress);
   return tx.wait();
 }
 
 /** Reads a player's withdrawable balance for a token (CELO_NATIVE = zero address). */
-export async function getBalance(provider, playerAddress, tokenAddress, network = "alfajores") {
+export async function getBalance(provider, playerAddress, tokenAddress, network = NETWORK) {
   const contract = new Contract(QUIZA_CONTRACT_ADDRESS[network], QUIZA_ABI, provider);
   return contract.balances(playerAddress, tokenAddress);
 }
@@ -162,4 +183,36 @@ export async function submitRoundForVerification({ roundId, questionIds, submitt
   });
   if (!res.ok) throw new Error("Verification request failed");
   return res.json(); // { won: boolean, correctCount: number, txHash: string }
+}
+
+// --- Web3 listeners -----------------------------------------------------
+
+let accountChangeHandler = null;
+let chainChangeHandler = null;
+
+export function onAccountChange(handler) {
+  accountChangeHandler = handler;
+  if (window.ethereum) {
+    window.ethereum.on("accountsChanged", (accounts) => {
+      if (accountChangeHandler) accountChangeHandler(accounts);
+    });
+  }
+}
+
+export function onChainChange(handler) {
+  chainChangeHandler = handler;
+  if (window.ethereum) {
+    window.ethereum.on("chainChanged", (chainId) => {
+      if (chainChangeHandler) chainChangeHandler(chainId);
+    });
+  }
+}
+
+export function removeWeb3Listeners() {
+  if (window.ethereum) {
+    window.ethereum.removeListener("accountsChanged", accountChangeHandler);
+    window.ethereum.removeListener("chainChanged", chainChangeHandler);
+  }
+  accountChangeHandler = null;
+  chainChangeHandler = null;
 }

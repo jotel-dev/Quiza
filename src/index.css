@@ -6,4 +6,16 @@
   body {
     @apply bg-white text-slate-800 font-sans antialiased;
   }
+  .dark body {
+    @apply bg-slate-900 text-slate-100;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply flex items-center justify-center gap-2 bg-[#4F46E5] text-white text-sm font-semibold py-3 rounded-xl shadow-md shadow-indigo-200 hover:opacity-90 transition active:scale-95;
+  }
+  .btn-secondary {
+    @apply flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-600 text-sm font-semibold py-3 rounded-xl hover:bg-slate-50 transition active:scale-95;
+  }
 }

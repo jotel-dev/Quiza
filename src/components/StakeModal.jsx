@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Wallet, X, Coins, ChevronRight, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
-import { connectWallet, ensureNetwork, stakeCelo, stakeCUSD, getWalletBalances } from "../lib/quizaContract";
+import { connectWallet, ensureNetwork, stakeCelo, stakeCUSD, getWalletBalances, getRoundIdFromReceipt, NETWORK } from "../lib/quizaContract";
 
 const INITIAL_TOKENS = [
   { symbol: "CELO", name: "Celo", color: "#F26722", balance: "0.0000" },
@@ -10,24 +10,31 @@ const INITIAL_TOKENS = [
 const STAKE_AMOUNT = 0.01;
 const WIN_MULTIPLIER = 1.5;
 
-// Simulated wallet/tx states: idle -> connecting -> connected -> staking -> staked
-export default function StakeModal({ isOpen, onClose, onStartQuiz }) {
-  const [walletState, setWalletState] = useState("disconnected"); // disconnected | connecting | connected
-  const [address, setAddress] = useState(null);
+export default function StakeModal({ isOpen, onClose, onStaked, onConnect, walletAddress }) {
+  const [walletState, setWalletState] = useState("disconnected");
+  const [address, setAddress] = useState(walletAddress ? walletAddress.slice(0, 6) + "..." + walletAddress.slice(-4) : null);
   const [signer, setSigner] = useState(null);
   const [isMiniPay, setIsMiniPay] = useState(false);
   const [tokens, setTokens] = useState(INITIAL_TOKENS);
-  const [selectedToken, setSelectedToken] = useState(INITIAL_TOKENS[1]); // default cUSD
-  const [txState, setTxState] = useState("idle"); // idle | staking | staked | error
+  const [selectedToken, setSelectedToken] = useState(INITIAL_TOKENS[1]);
+  const [txState, setTxState] = useState("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const [roundId, setRoundId] = useState(null);
+
+  useEffect(() => {
+    if (walletAddress && !address) {
+      setAddress(walletAddress.slice(0, 6) + "..." + walletAddress.slice(-4));
+      setWalletState("connected");
+    }
+  }, [walletAddress, address]);
 
   const handleConnect = async () => {
     setWalletState("connecting");
     try {
       const { provider, signer, address, isMiniPay } = await connectWallet();
-      await ensureNetwork("mainnet"); 
+      await ensureNetwork(NETWORK);
       
-      const balances = await getWalletBalances(provider, address, "mainnet");
+      const balances = await getWalletBalances(provider, address, NETWORK);
       const updatedTokens = [
         { ...INITIAL_TOKENS[0], balance: balances.CELO },
         { ...INITIAL_TOKENS[1], balance: balances.cUSD },
@@ -39,6 +46,7 @@ export default function StakeModal({ isOpen, onClose, onStartQuiz }) {
       setAddress(address.slice(0, 6) + "..." + address.slice(-4));
       setIsMiniPay(isMiniPay);
       setWalletState("connected");
+      onConnect?.();
     } catch (error) {
       console.error("Wallet connection failed:", error);
       setErrorMessage(error?.message || "Connection failed. Please try again.");
@@ -51,11 +59,14 @@ export default function StakeModal({ isOpen, onClose, onStartQuiz }) {
     setTxState("staking");
     setErrorMessage("");
     try {
+      let receipt;
       if (selectedToken.symbol === "CELO") {
-        await stakeCelo(signer, STAKE_AMOUNT.toString(), "mainnet");
+        receipt = await stakeCelo(signer, STAKE_AMOUNT.toString(), NETWORK);
       } else {
-        await stakeCUSD(signer, STAKE_AMOUNT.toString(), "mainnet");
+        receipt = await stakeCUSD(signer, STAKE_AMOUNT.toString(), NETWORK);
       }
+      const newRoundId = getRoundIdFromReceipt(receipt, NETWORK);
+      setRoundId(newRoundId);
       setTxState("staked");
     } catch (error) {
       console.error("Staking failed:", error);
@@ -217,7 +228,7 @@ export default function StakeModal({ isOpen, onClose, onStartQuiz }) {
               {STAKE_AMOUNT} {selectedToken.symbol} locked in. Good luck!
             </p>
             <button 
-              onClick={onStartQuiz}
+              onClick={() => onStaked({ token: selectedToken.symbol, roundId, address, signer })}
               className="w-full mt-5 bg-[#0A4C86] text-white text-sm font-semibold py-3 rounded-xl shadow-md shadow-blue-200 hover:opacity-90 transition active:scale-95"
             >
               Start Quiz →
