@@ -11,7 +11,7 @@
 // API route — the core logic (verifyAndResolve) is framework-agnostic.
 
 import { JsonRpcProvider, Wallet, Contract } from "ethers";
-import questionBank from "../src/data/questions.json" assert { type: "json" };
+import questionBank from "../src/data/questions.json" with { type: "json" };
 import { QUIZA_ABI, QUIZA_CONTRACT_ADDRESS, CELO_NETWORKS } from "../src/lib/quizaContract.js";
 
 const WIN_THRESHOLD = 0.7; // 7/10 correct or better wins

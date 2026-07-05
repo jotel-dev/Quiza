@@ -1,7 +1,16 @@
 import { BrowserProvider, JsonRpcProvider, Contract, parseEther, parseUnits, formatEther, formatUnits } from "ethers";
 
 // --- Network config -----------------------------------------------------
-export const NETWORK = import.meta.env.VITE_QUIZA_NETWORK || "mainnet";
+const getNetwork = () => {
+  if (typeof process !== "undefined" && process.env && process.env.QUIZA_NETWORK) {
+    return process.env.QUIZA_NETWORK;
+  }
+  if (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_QUIZA_NETWORK) {
+    return import.meta.env.VITE_QUIZA_NETWORK;
+  }
+  return "mainnet";
+};
+export const NETWORK = getNetwork();
 
 export const CELO_NETWORKS = {
   alfajores: {
