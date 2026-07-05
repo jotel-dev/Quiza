@@ -30,6 +30,7 @@ import HomeScreen from "./pages/Home.jsx";
 import QuizScreen from "./pages/Quiz.jsx";
 import ResultsScreen from "./pages/Results.jsx";
 import WelcomeScreen from "./pages/Welcome.jsx";
+import LeaderboardScreen from "./pages/Leaderboard.jsx";
 import StakeModal from "./components/StakeModal.jsx";
 
 const STAKE_AMOUNT = 0.01;
@@ -133,6 +134,7 @@ export default function QuizaApp() {
         roundId: stakeInfo.roundId,
         questionIds,
         submittedAnswers,
+        address: walletAddress,
       });
 
       const payout = verified.won ? (STAKE_AMOUNT * WIN_MULTIPLIER).toFixed(4) : null;
@@ -188,11 +190,20 @@ export default function QuizaApp() {
             </div>
           </div>
           <nav className="flex-1 space-y-1">
-            {nav.map(({ icon: Icon, label }) => (
-              <button key={label} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${label === "Home" ? "bg-[#4F46E5] text-white shadow-md shadow-indigo-200" : "text-slate-500 hover:bg-slate-50"}`}>
-                <Icon size={18} />{label}
-              </button>
-            ))}
+            {nav.map(({ icon: Icon, label }) => {
+              const isActive = (label === "Home" && isHome) || (label === "Leaderboard" && location.pathname === "/leaderboard");
+              return (
+                <button 
+                  key={label} 
+                  onClick={() => {
+                    if (label === "Leaderboard") { setScreen("leaderboard"); navigate("/leaderboard"); }
+                    else if (label === "Home") { setScreen("home"); navigate("/"); }
+                  }}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${isActive ? "bg-[#4F46E5] text-white shadow-md shadow-indigo-200" : "text-slate-500 hover:bg-slate-50"}`}>
+                  <Icon size={18} />{label}
+                </button>
+              );
+            })}
           </nav>
         </aside>
       )}
@@ -203,6 +214,7 @@ export default function QuizaApp() {
           <Route path="/home" element={<HomeScreen onStartQuiz={handleStartQuiz} stats={stats} darkMode={darkMode} />} />
           <Route path="/quiz" element={<QuizScreen roundQuestions={roundQuestions} onRoundComplete={handleRoundComplete} darkMode={darkMode} />} />
           <Route path="/results" element={<ResultsScreen result={result} stakeInfo={stakeInfo} signer={signer} onPlayAgain={handlePlayAgain} darkMode={darkMode} />} />
+          <Route path="/leaderboard" element={<LeaderboardScreen darkMode={darkMode} walletAddress={walletAddress} />} />
         </Routes>
 
         {screen === "verifying" && (

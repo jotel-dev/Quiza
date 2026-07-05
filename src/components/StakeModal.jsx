@@ -13,6 +13,7 @@ const WIN_MULTIPLIER = 1.5;
 export default function StakeModal({ isOpen, onClose, onStaked, onConnect, walletAddress }) {
   const [walletState, setWalletState] = useState("disconnected");
   const [address, setAddress] = useState(walletAddress ? walletAddress.slice(0, 6) + "..." + walletAddress.slice(-4) : null);
+  const [fullAddress, setFullAddress] = useState(walletAddress || null);
   const [signer, setSigner] = useState(null);
   const [isMiniPay, setIsMiniPay] = useState(false);
   const [tokens, setTokens] = useState(INITIAL_TOKENS);
@@ -20,10 +21,12 @@ export default function StakeModal({ isOpen, onClose, onStaked, onConnect, walle
   const [txState, setTxState] = useState("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [roundId, setRoundId] = useState(null);
+  const [username, setUsername] = useState(() => localStorage.getItem("quiza_username") || "");
 
   useEffect(() => {
     if (walletAddress && !address) {
       setAddress(walletAddress.slice(0, 6) + "..." + walletAddress.slice(-4));
+      setFullAddress(walletAddress);
       setWalletState("connected");
     }
   }, [walletAddress, address]);
@@ -31,10 +34,10 @@ export default function StakeModal({ isOpen, onClose, onStaked, onConnect, walle
   const handleConnect = async () => {
     setWalletState("connecting");
     try {
-      const { provider, signer, address, isMiniPay } = await connectWallet();
+      const { provider, signer, address: addr, isMiniPay } = await connectWallet();
       await ensureNetwork(NETWORK);
       
-      const balances = await getWalletBalances(provider, address, NETWORK);
+      const balances = await getWalletBalances(provider, addr, NETWORK);
       const updatedTokens = [
         { ...INITIAL_TOKENS[0], balance: balances.CELO },
         { ...INITIAL_TOKENS[1], balance: balances.cUSD },
@@ -43,7 +46,8 @@ export default function StakeModal({ isOpen, onClose, onStaked, onConnect, walle
       setSelectedToken(updatedTokens[1]);
 
       setSigner(signer);
-      setAddress(address.slice(0, 6) + "..." + address.slice(-4));
+      setAddress(addr.slice(0, 6) + "..." + addr.slice(-4));
+      setFullAddress(addr);
       setIsMiniPay(isMiniPay);
       setWalletState("connected");
       onConnect?.();
@@ -58,6 +62,17 @@ export default function StakeModal({ isOpen, onClose, onStaked, onConnect, walle
   const handleStake = async () => {
     setTxState("staking");
     setErrorMessage("");
+    
+    const finalUsername = username.trim() || fullAddress.slice(0, 6) + "...";
+    localStorage.setItem("quiza_username", finalUsername);
+    try {
+      await fetch("/api/user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: fullAddress, username: finalUsername }),
+      });
+    } catch (e) { console.error("Failed to set username:", e); }
+
     try {
       let receipt;
       if (selectedToken.symbol === "CELO") {
@@ -70,7 +85,18 @@ export default function StakeModal({ isOpen, onClose, onStaked, onConnect, walle
       setTxState("staked");
     } catch (error) {
       console.error("Staking failed:", error);
-      setErrorMessage(error?.message || "Transaction failed or was rejected.");
+      let errMsg = error?.message || "Transaction failed or was rejected.";
+      if (errMsg.toLowerCase().includes("user rejected") || errMsg.includes("4001")) {
+        errMsg = "Transaction was rejected in your wallet. Please try again.";
+      } else if (errMsg.includes("could not coalesce error")) {
+        // Ethers v6 often wraps RPC errors in a huge JSON blob if it can't map the code
+        const match = errMsg.match(/"message":\s*"([^"]+)"/);
+        errMsg = match ? match[1] : "Transaction failed (Unknown error).";
+      } else if (errMsg.length > 100) {
+        // Fallback for other massive unparsed errors
+        errMsg = "Transaction failed. Please check your balance or try again.";
+      }
+      setErrorMessage(errMsg);
       setTxState("error");
     }
   };
@@ -173,6 +199,18 @@ export default function StakeModal({ isOpen, onClose, onStaked, onConnect, walle
                   </button>
                 );
               })}
+            </div>
+
+            <div className="mt-4">
+              <label className="block text-xs font-medium text-slate-500 mb-1">Leaderboard Username (Optional)</label>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder={address}
+                className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#0A4C86] transition-colors"
+                maxLength={20}
+              />
             </div>
 
             <div className="flex items-center justify-between bg-slate-50 rounded-xl px-4 py-3 mt-4">
