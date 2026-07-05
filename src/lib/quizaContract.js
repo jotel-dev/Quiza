@@ -1,9 +1,4 @@
-// src/lib/quizaContract.js
-// Frontend integration layer connecting Quiza's UI to the Quiza.sol contract on Celo.
-// Uses ethers.js v6. Works with MiniPay's injected provider (window.ethereum) directly —
-// MiniPay auto-connects and injects a standard EIP-1193 provider.
-
-import { BrowserProvider, Contract, parseEther, parseUnits, formatEther } from "ethers";
+import { BrowserProvider, Contract, parseEther, parseUnits } from "ethers";
 
 // --- Network config -----------------------------------------------------
 export const CELO_NETWORKS = {
@@ -55,16 +50,8 @@ const ERC20_ABI = [
 // --- Connection -----------------------------------------------------------
 
 /**
- * Checks if the user is currently inside the MiniPay webview.
- * MiniPay injects window.ethereum and specifically sets isMiniPay to true.
- */
-export function isMiniPayBrowser() {
-  return typeof window !== "undefined" && window.ethereum && window.ethereum.isMiniPay === true;
-}
-
-/**
  * Connects to the wallet injected by MiniPay (or any EIP-1193 wallet as fallback).
- * Returns { provider, signer, address, isMiniPay }.
+ * Returns { provider, signer, address }.
  */
 export async function connectWallet() {
   if (!window.ethereum) {
@@ -74,15 +61,12 @@ export async function connectWallet() {
   await provider.send("eth_requestAccounts", []);
   const signer = await provider.getSigner();
   const address = await signer.getAddress();
-  const isMiniPay = isMiniPayBrowser();
-  return { provider, signer, address, isMiniPay };
+  return { provider, signer, address };
 }
 
 /** Ensures the wallet is on the expected Celo network, prompting a switch if not. */
 export async function ensureNetwork(network = "alfajores") {
-  // MiniPay is fixed to Celo Mainnet and doesn't support network switching RPC calls.
-  if (isMiniPayBrowser()) return;
-
+  if (!window.ethereum) return; // let connectWallet() surface the "no wallet" error
   const cfg = CELO_NETWORKS[network];
   try {
     await window.ethereum.request({
@@ -104,17 +88,6 @@ export async function ensureNetwork(network = "alfajores") {
 
 function getContract(signer, network = "alfajores") {
   return new Contract(QUIZA_CONTRACT_ADDRESS[network], QUIZA_ABI, signer);
-}
-
-export async function getWalletBalances(provider, address, network = "alfajores") {
-  const celoBalance = await provider.getBalance(address);
-  const cusd = new Contract(CUSD_ADDRESS[network], ERC20_ABI, provider);
-  const cusdBalance = await cusd.balanceOf(address);
-  
-  return {
-    CELO: parseFloat(formatEther(celoBalance)).toFixed(4),
-    cUSD: parseFloat(formatEther(cusdBalance)).toFixed(4),
-  };
 }
 
 // --- Staking ----------------------------------------------------------
