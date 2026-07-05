@@ -200,10 +200,28 @@ export async function getBalance(provider, playerAddress, tokenAddress, network 
 export async function submitRoundForVerification({ roundId, questionIds, submittedAnswers, address }) {
   const res = await fetch("/api/verify-round", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ roundId: roundId.toString(), questionIds, submittedAnswers, address }),
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      roundId: roundId.toString(),
+      questionIds,
+      submittedAnswers,
+      address
+    }),
   });
-  if (!res.ok) throw new Error("Verification request failed");
+
+  if (!res.ok) {
+    let errorMsg = "Verification request failed";
+    try {
+      const errorData = await res.json();
+      if (errorData.error) errorMsg = errorData.error;
+    } catch (e) {
+      // Ignore JSON parse errors if Vercel returns a 500 HTML page
+    }
+    throw new Error(errorMsg);
+  }
+
   return res.json(); // { won: boolean, correctCount: number, txHash: string }
 }
 
