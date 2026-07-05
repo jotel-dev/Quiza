@@ -70,7 +70,18 @@ export default function StakeModal({ isOpen, onClose, onStaked, onConnect, walle
       setTxState("staked");
     } catch (error) {
       console.error("Staking failed:", error);
-      setErrorMessage(error?.message || "Transaction failed or was rejected.");
+      let errMsg = error?.message || "Transaction failed or was rejected.";
+      if (errMsg.toLowerCase().includes("user rejected") || errMsg.includes("4001")) {
+        errMsg = "Transaction was rejected in your wallet. Please try again.";
+      } else if (errMsg.includes("could not coalesce error")) {
+        // Ethers v6 often wraps RPC errors in a huge JSON blob if it can't map the code
+        const match = errMsg.match(/"message":\s*"([^"]+)"/);
+        errMsg = match ? match[1] : "Transaction failed (Unknown error).";
+      } else if (errMsg.length > 100) {
+        // Fallback for other massive unparsed errors
+        errMsg = "Transaction failed. Please check your balance or try again.";
+      }
+      setErrorMessage(errMsg);
       setTxState("error");
     }
   };
