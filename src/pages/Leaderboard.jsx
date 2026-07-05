@@ -152,7 +152,7 @@ export default function Leaderboard({ darkMode, walletAddress }) {
 
       {/* Pinned Current User Card (if outside top 20 or viewing the list) */}
       {currentUserRank && (
-        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-xl ${darkMode ? "bg-slate-800" : "bg-white"} rounded-2xl shadow-[0_10px_50px_rgba(0,0,0,0.15)] border border-slate-200/50 p-4 z-10 flex items-center`}>
+        <div className={`fixed bottom-24 lg:bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-xl ${darkMode ? "bg-slate-800" : "bg-white"} rounded-2xl shadow-[0_10px_50px_rgba(0,0,0,0.15)] border border-slate-200/50 p-4 z-10 flex items-center`}>
           <div className="w-10 text-center font-bold text-[#4F46E5] mr-3">
             #{currentUserRank.rank}
           </div>
