@@ -19,9 +19,7 @@ export default function Welcome() {
         className="max-w-md w-full"
       >
         <GlassCard className="p-8 flex flex-col items-center text-center bg-white/60">
-          <div className="w-16 h-16 rounded-2xl bg-[#0A4C86] flex items-center justify-center shadow-lg shadow-blue-200 mb-6">
-            <span className="text-white text-3xl font-black">?</span>
-          </div>
+          <img src="/logo.png" alt="Quiza Logo" className="w-24 h-24 object-contain mb-6" />
           
           <h1 className="text-3xl font-extrabold text-slate-800 mb-2">Welcome to Quiza</h1>
           <p className="text-sm text-slate-500 mb-8">

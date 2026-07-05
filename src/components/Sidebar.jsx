@@ -20,9 +20,7 @@ export default function Sidebar() {
   return (
     <aside className="hidden lg:flex flex-col w-64 border-r border-slate-100 p-5 shrink-0 bg-white/50 backdrop-blur-md">
       <div className="flex items-center gap-2 px-2 mb-8 cursor-pointer" onClick={() => navigate('/')}>
-        <div className="w-9 h-9 rounded-xl bg-[#0A4C86] flex items-center justify-center shadow-lg shadow-blue-200">
-          <span className="text-white text-lg font-bold">?</span>
-        </div>
+        <img src="/logo.png" alt="Quiza Logo" className="w-12 h-12 object-contain" />
         <div className="leading-tight">
           <p className="font-extrabold text-[#0A4C86] text-sm tracking-tight">QUIZA</p>
           <p className="font-extrabold text-slate-800 text-sm tracking-tight -mt-1">QUEST</p>

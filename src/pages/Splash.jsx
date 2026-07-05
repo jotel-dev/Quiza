@@ -30,9 +30,7 @@ export default function Splash() {
         }}
         className="flex flex-col items-center gap-4"
       >
-        <div className="w-20 h-20 rounded-3xl bg-white flex items-center justify-center shadow-[0_0_40px_rgba(255,255,255,0.3)]">
-          <span className="text-[#0A4C86] text-4xl font-black">?</span>
-        </div>
+        <img src="/logo.png" alt="Quiza Logo" className="w-24 h-24 object-contain shadow-[0_0_40px_rgba(255,255,255,0.3)] rounded-3xl bg-white" />
         <motion.div 
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
