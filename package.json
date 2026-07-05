@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:api": "node server-dev.js",
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",
