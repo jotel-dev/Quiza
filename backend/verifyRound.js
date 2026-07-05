@@ -20,7 +20,8 @@ const WIN_THRESHOLD = 0.7; // 7/10 correct or better wins
 // VERIFIER_PRIVATE_KEY must belong to the address set as `verifier` in Quiza.sol.
 // Never expose this key to the frontend or commit it to git — load from env only.
 const VERIFIER_PRIVATE_KEY = process.env.QUIZA_VERIFIER_PRIVATE_KEY;
-const NETWORK = process.env.QUIZA_NETWORK || "alfajores"; // "alfajores" | "mainnet"
+let NETWORK = process.env.QUIZA_NETWORK || "alfajores"; // "alfajores" | "mainnet"
+if (NETWORK === "celo") NETWORK = "mainnet";
 
 function getVerifierWallet() {
   const provider = new JsonRpcProvider(CELO_NETWORKS[NETWORK].rpcUrls[0]);

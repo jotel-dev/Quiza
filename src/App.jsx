@@ -33,7 +33,7 @@ import WelcomeScreen from "./pages/Welcome.jsx";
 import LeaderboardScreen from "./pages/Leaderboard.jsx";
 import StakeModal from "./components/StakeModal.jsx";
 
-const STAKE_AMOUNT = 0.01;
+
 const WIN_MULTIPLIER = 1.5;
 const QUESTIONS_PER_ROUND = 10;
 
@@ -137,7 +137,8 @@ export default function QuizaApp() {
         address: walletAddress,
       });
 
-      const payout = verified.won ? (STAKE_AMOUNT * WIN_MULTIPLIER).toFixed(4) : null;
+      const stakeAmt = stakeInfo.token === "cUSD" ? 0.001 : 0.01;
+      const payout = verified.won ? (stakeAmt * WIN_MULTIPLIER).toFixed(4) : null;
       setResult({ correct, wrong, total, won: verified.won, payout, txHash: verified.txHash });
 
       setStats((s) => ({
