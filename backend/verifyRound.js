@@ -67,8 +67,18 @@ export async function verifyAndResolve({ roundId, questionIds, submittedAnswers,
   const verifierWallet = getVerifierWallet();
   const contract = new Contract(QUIZA_CONTRACT_ADDRESS[NETWORK], QUIZA_ABI, verifierWallet);
 
-  const tx = await contract.resolve(roundId, won);
-  const receipt = await tx.wait();
+  let txHash = null;
+  try {
+    const tx = await contract.resolve(roundId, won);
+    const receipt = await tx.wait();
+    txHash = receipt.hash;
+  } catch (err) {
+    if (err.message && (err.message.includes("Round already resolved") || err.message.includes("execution reverted"))) {
+      console.warn(`Round ${roundId} is already resolved. Skipping on-chain tx.`);
+    } else {
+      throw err;
+    }
+  }
 
   // Record stats in DB
   if (address) {
@@ -103,7 +113,7 @@ export async function verifyAndResolve({ roundId, questionIds, submittedAnswers,
     }
   }
 
-  return { won, correctCount, total, txHash: receipt.hash };
+  return { won, correctCount, total, txHash };
 }
 
 // --- Example Express route -------------------------------------------------

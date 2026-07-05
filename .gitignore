@@ -30,3 +30,7 @@ dist-ssr
 # Hardhat
 cache/
 artifacts/
+
+# Database
+data/
+*.sqlite*
