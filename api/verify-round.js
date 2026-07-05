@@ -2,7 +2,7 @@ import { JsonRpcProvider, Wallet, Contract } from "ethers";
 import questionBank from "../src/data/questions.json" with { type: "json" };
 import { QUIZA_ABI, QUIZA_CONTRACT_ADDRESS, CELO_NETWORKS } from "../src/lib/quizaContract.js";
 import { db } from "./firebaseAdmin.js";
-import admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 
 const WIN_THRESHOLD = 0.7; // 7/10 correct or better wins
 
@@ -74,7 +74,7 @@ export async function verifyAndResolve({ roundId, questionIds, submittedAnswers,
             totalQuestions: total,
             gamesPlayed: 1,
             streak: isWin,
-            lastUpdated: admin.firestore.FieldValue.serverTimestamp()
+            lastUpdated: FieldValue.serverTimestamp()
           });
         } else {
           const data = doc.data();
@@ -85,7 +85,7 @@ export async function verifyAndResolve({ roundId, questionIds, submittedAnswers,
             totalQuestions: (data.totalQuestions || 0) + total,
             gamesPlayed: (data.gamesPlayed || 0) + 1,
             streak: newStreak,
-            lastUpdated: admin.firestore.FieldValue.serverTimestamp()
+            lastUpdated: FieldValue.serverTimestamp()
           });
         }
       });

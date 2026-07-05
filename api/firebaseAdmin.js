@@ -1,14 +1,17 @@
-import admin from "firebase-admin";
+import { getApps, initializeApp, cert } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
 
-if (!admin.apps.length) {
+if (!getApps().length) {
   try {
-    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
-    });
+    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+      const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+      initializeApp({
+        credential: cert(serviceAccount)
+      });
+    }
   } catch (error) {
     console.error("Firebase admin initialization error. Check FIREBASE_SERVICE_ACCOUNT env var.", error);
   }
 }
 
-export const db = admin.apps.length ? admin.firestore() : null;
+export const db = getApps().length ? getFirestore() : null;
