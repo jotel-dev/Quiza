@@ -15,45 +15,53 @@ export default function Leaderboard({ darkMode, walletAddress }) {
   const [currentUserRank, setCurrentUserRank] = useState(null);
 
   useEffect(() => {
-    // Connect to SSE stream
-    const eventSource = new EventSource("/api/leaderboard/stream");
-    
-    eventSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        setPlayers(data);
-        setLoading(false);
-      } catch (err) {
-        console.error("Failed to parse leaderboard SSE:", err);
-      }
-    };
+    import("../lib/firebase.js").then(({ db }) => {
+      import("firebase/firestore").then(({ collection, query, where, orderBy, limit, onSnapshot }) => {
+        const q = query(
+          collection(db, "players"),
+          where("gamesPlayed", ">", 0),
+          orderBy("gamesPlayed", "desc"), // Firestore needs this if where clause is used without composite index
+          limit(50)
+        );
 
-    eventSource.onerror = () => {
-      console.error("SSE connection error");
-    };
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+          let docs = [];
+          snapshot.forEach((doc) => {
+            const data = doc.data();
+            data.accuracy = data.totalQuestions > 0 ? (data.correctAnswers * 100) / data.totalQuestions : 0;
+            docs.push(data);
+          });
 
-    return () => {
-      eventSource.close();
-    };
-  }, []);
+          // Sort in memory: Points DESC, Accuracy DESC, LastUpdated ASC
+          docs.sort((a, b) => {
+            if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
+            if (b.accuracy !== a.accuracy) return b.accuracy - a.accuracy;
+            const aTime = a.lastUpdated?.toMillis?.() || 0;
+            const bTime = b.lastUpdated?.toMillis?.() || 0;
+            return aTime - bTime;
+          });
 
-  useEffect(() => {
-    if (!walletAddress) return;
-    
-    // Check if user is in top 20
-    const inTop20 = players.findIndex((p) => p.address === walletAddress);
-    if (inTop20 !== -1) {
-      setCurrentUserRank({ ...players[inTop20], rank: inTop20 + 1 });
-    } else {
-      // Fetch rank separately
-      fetch(`/api/leaderboard/${walletAddress}`)
-        .then(res => res.json())
-        .then(data => {
-          if (!data.error) setCurrentUserRank(data);
-        })
-        .catch(console.error);
-    }
-  }, [players, walletAddress]);
+          const top20 = docs.slice(0, 20);
+          setPlayers(top20);
+          setLoading(false);
+
+          if (walletAddress) {
+            const userIndex = docs.findIndex((p) => p.address === walletAddress);
+            if (userIndex !== -1) {
+              setCurrentUserRank({ ...docs[userIndex], rank: userIndex + 1 });
+            } else {
+              setCurrentUserRank(null);
+            }
+          }
+        }, (err) => {
+          console.error("Firebase snapshot error:", err);
+          setLoading(false);
+        });
+
+        return () => unsubscribe();
+      }).catch(console.error);
+    }).catch(console.error);
+  }, [walletAddress]);
 
   const bgStyle = darkMode ? "bg-slate-900 text-slate-100" : "bg-white text-slate-800";
   const cardStyle = darkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-100 shadow-[0_8px_30px_rgba(79,70,229,0.08)]";
