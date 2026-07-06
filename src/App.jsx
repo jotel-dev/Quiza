@@ -225,7 +225,7 @@ export default function QuizaApp() {
       <main className="flex-1 relative pb-20 lg:pb-0">
         <Routes>
           <Route path="/" element={<WelcomeScreen />} />
-          <Route path="/home" element={<HomeScreen onStartQuiz={handleStartQuiz} stats={stats} walletAddress={walletAddress} onConnectWallet={handleConnectWallet} />} />
+          <Route path="/home" element={<HomeScreen onStartQuiz={handleStartQuiz} stats={stats} walletAddress={walletAddress} onConnectWallet={handleConnectWallet} onDisconnectWallet={() => { setWalletAddress(null); setSigner(null); }} />} />
           <Route path="/quiz" element={<QuizScreen roundQuestions={roundQuestions} onRoundComplete={handleRoundComplete} />} />
           <Route path="/results" element={<ResultsScreen result={result} stakeInfo={stakeInfo} signer={signer} onPlayAgain={handlePlayAgain} />} />
           <Route path="/leaderboard" element={<LeaderboardScreen walletAddress={walletAddress} />} />
