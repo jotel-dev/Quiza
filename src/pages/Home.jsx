@@ -5,13 +5,7 @@ import {
   CircleDot, Film, Globe2, Flame, Target, Users,
 } from "lucide-react";
 
-const categories = [
-  { icon: FlaskConical, label: "Math", count: 10, color: "#4F46E5" },
-  { icon: Landmark, label: "History", count: 10, color: "#F59E0B" },
-  { icon: CircleDot, label: "Web3", count: 5, color: "#10B981" },
-  { icon: Film, label: "General Knowledge", count: 10, color: "#EF4444" },
-  { icon: Globe2, label: "Geography", count: 10, color: "#10B981" },
-];
+
 
 function GlassCard({ children, className = "" }) {
   return (
@@ -36,25 +30,12 @@ function StatCard({ label, value, icon: Icon, iconColor, iconBg }) {
 }
 
 export default function Home({ onStartQuiz, stats, walletAddress, onConnectWallet }) {
-  const [searchQuery, setSearchQuery] = useState("");
-
-  const filteredCategories = categories.filter((cat) =>
-    cat.label.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   return (
     <div className="flex-1 p-4 sm:p-6 overflow-y-auto">
       <div className="flex items-center justify-between gap-3 sm:gap-4 mb-6">
-        <img src="/logo.png" alt="Quiza Logo" className="h-9 sm:h-11 w-auto object-contain lg:hidden shrink-0" />
-        <div className="flex-1 max-w-sm relative">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search categories..."
-            className="w-full bg-slate-50 border border-slate-100 rounded-full pl-10 pr-4 py-2.5 text-sm text-slate-600 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-          />
+        <div className="flex items-center gap-3">
+          <img src="/logo.png" alt="Quiza Logo" className="h-9 sm:h-11 w-auto object-contain lg:hidden shrink-0" />
+          <h1 className="text-xl font-bold text-slate-800 lg:hidden">Quiza</h1>
         </div>
         <div className="flex items-center gap-3">
           {walletAddress ? (
@@ -107,26 +88,7 @@ export default function Home({ onStartQuiz, stats, walletAddress, onConnectWalle
             </div>
           </GlassCard>
 
-          <div id="categories-section">
-            <h2 className="font-bold text-slate-800 mb-3">Categories</h2>
-            {filteredCategories.length > 0 ? (
-              <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
-                {filteredCategories.map(({ icon: Icon, label, count, color }) => (
-                  <GlassCard key={label} className="p-4 flex flex-col items-center text-center hover:-translate-y-0.5 transition-transform cursor-pointer" onClick={() => alert(`${label} category coming soon!`)}>
-                    <div className="w-11 h-11 rounded-2xl flex items-center justify-center mb-2" style={{ backgroundColor: `${color}1A` }}>
-                      <Icon size={20} style={{ color }} />
-                    </div>
-                    <p className="text-xs font-semibold text-slate-700">{label}</p>
-                    <p className="text-[10px] text-slate-400 mt-0.5">{count} Questions</p>
-                  </GlassCard>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-10 bg-slate-50 rounded-[22px] border border-slate-100">
-                <p className="text-slate-500 text-sm">No categories found matching "{searchQuery}"</p>
-              </div>
-            )}
-          </div>
+
         </div>
 
         <div className="space-y-5">

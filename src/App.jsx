@@ -26,6 +26,7 @@ import QuizScreen from "./pages/Quiz.jsx";
 import ResultsScreen from "./pages/Results.jsx";
 import WelcomeScreen from "./pages/Welcome.jsx";
 import LeaderboardScreen from "./pages/Leaderboard.jsx";
+import CategoriesScreen from "./pages/Categories.jsx";
 import StakeModal from "./components/StakeModal.jsx";
 
 
@@ -176,7 +177,7 @@ export default function QuizaApp() {
           </div>
           <nav className="flex-1 space-y-1">
             {nav.map(({ icon: Icon, label }) => {
-              const isActive = (label === "Home" && isHome) || (label === "Leaderboard" && location.pathname === "/leaderboard");
+              const isActive = (label === "Home" && isHome) || (label === "Leaderboard" && location.pathname === "/leaderboard") || (label === "Categories" && location.pathname === "/categories");
               return (
                 <button 
                   key={label} 
@@ -184,11 +185,7 @@ export default function QuizaApp() {
                     if (label === "Leaderboard") { setScreen("leaderboard"); navigate("/leaderboard"); }
                     else if (label === "Home") { setScreen("home"); navigate("/home"); }
                     else if (label === "Daily Challenge") { alert("Daily Challenge is coming soon!"); }
-                    else if (label === "Categories") { 
-                      setScreen("home"); 
-                      navigate("/home"); 
-                      setTimeout(() => document.getElementById("categories-section")?.scrollIntoView({ behavior: "smooth" }), 100); 
-                    }
+                    else if (label === "Categories") { setScreen("categories"); navigate("/categories"); }
                   }}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${isActive ? "bg-[#4F46E5] text-white shadow-md shadow-indigo-200" : "text-slate-500 hover:bg-slate-50"}`}>
                   <Icon size={18} />{label}
@@ -203,7 +200,7 @@ export default function QuizaApp() {
       {showMobileNav && (
         <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 flex justify-around p-2 z-50 pb-safe">
           {nav.slice(0, 4).map(({ icon: Icon, label }) => {
-            const isActive = (label === "Home" && isHome) || (label === "Leaderboard" && location.pathname === "/leaderboard");
+            const isActive = (label === "Home" && isHome) || (label === "Leaderboard" && location.pathname === "/leaderboard") || (label === "Categories" && location.pathname === "/categories");
             return (
               <button
                 key={label}
@@ -211,11 +208,7 @@ export default function QuizaApp() {
                   if (label === "Leaderboard") { setScreen("leaderboard"); navigate("/leaderboard"); }
                   else if (label === "Home") { setScreen("home"); navigate("/home"); }
                   else if (label === "Daily Challenge") { alert("Daily Challenge is coming soon!"); }
-                  else if (label === "Categories") { 
-                    setScreen("home"); 
-                    navigate("/home"); 
-                    setTimeout(() => document.getElementById("categories-section")?.scrollIntoView({ behavior: "smooth" }), 100); 
-                  }
+                  else if (label === "Categories") { setScreen("categories"); navigate("/categories"); }
                 }}
                 className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${
                   isActive ? "text-[#4F46E5] bg-indigo-50" : "text-slate-400 hover:text-slate-600"
@@ -236,6 +229,7 @@ export default function QuizaApp() {
           <Route path="/quiz" element={<QuizScreen roundQuestions={roundQuestions} onRoundComplete={handleRoundComplete} />} />
           <Route path="/results" element={<ResultsScreen result={result} stakeInfo={stakeInfo} signer={signer} onPlayAgain={handlePlayAgain} />} />
           <Route path="/leaderboard" element={<LeaderboardScreen walletAddress={walletAddress} />} />
+          <Route path="/categories" element={<CategoriesScreen />} />
         </Routes>
 
         {screen === "verifying" && (
