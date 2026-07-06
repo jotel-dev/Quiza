@@ -79,7 +79,9 @@ export default function Home({ onStartQuiz, stats }) {
                   <Play size={14} fill="white" />
                   Start Quiz
                 </button>
-                <button className="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-slate-50 transition active:scale-95">
+                <button 
+                  onClick={() => alert("Daily Challenge is coming soon!")}
+                  className="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-slate-50 transition active:scale-95">
                   <Calendar size={14} />
                   Daily Challenge
                 </button>
