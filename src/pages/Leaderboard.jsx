@@ -9,7 +9,7 @@ const getMedalIcon = (index) => {
   return null;
 };
 
-export default function Leaderboard({ darkMode, walletAddress }) {
+export default function Leaderboard({ walletAddress }) {
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentUserRank, setCurrentUserRank] = useState(null);
@@ -63,8 +63,8 @@ export default function Leaderboard({ darkMode, walletAddress }) {
     }).catch(console.error);
   }, [walletAddress]);
 
-  const bgStyle = darkMode ? "bg-slate-900 text-slate-100" : "bg-white text-slate-800";
-  const cardStyle = darkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-100 shadow-[0_8px_30px_rgba(79,70,229,0.08)]";
+  const bgStyle = "bg-white text-slate-800";
+  const cardStyle = "bg-white border-slate-100 shadow-[0_8px_30px_rgba(79,70,229,0.08)]";
 
   if (loading) {
     return (
@@ -109,7 +109,7 @@ export default function Leaderboard({ darkMode, walletAddress }) {
                     transition={{ duration: 0.3 }}
                     className={`flex items-center p-4 sm:p-5 rounded-2xl border transition-all ${
                       isCurrentUser 
-                        ? (darkMode ? "bg-indigo-900/40 border-indigo-500 shadow-[0_0_0_2px_rgba(99,102,241,0.2)]" : "bg-indigo-50 border-[#4F46E5] shadow-[0_0_0_2px_rgba(79,70,229,0.1)]")
+                        ? "bg-indigo-50 border-[#4F46E5] shadow-[0_0_0_2px_rgba(79,70,229,0.1)]"
                         : cardStyle
                     }`}
                   >
@@ -152,7 +152,7 @@ export default function Leaderboard({ darkMode, walletAddress }) {
 
       {/* Pinned Current User Card (if outside top 20 or viewing the list) */}
       {currentUserRank && (
-        <div className={`fixed bottom-24 lg:bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-xl ${darkMode ? "bg-slate-800" : "bg-white"} rounded-2xl shadow-[0_10px_50px_rgba(0,0,0,0.15)] border border-slate-200/50 p-4 z-10 flex items-center`}>
+        <div className="fixed bottom-24 lg:bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-xl bg-white rounded-2xl shadow-[0_10px_50px_rgba(0,0,0,0.15)] border border-slate-200/50 p-4 z-10 flex items-center">
           <div className="w-10 text-center font-bold text-[#4F46E5] mr-3">
             #{currentUserRank.rank}
           </div>

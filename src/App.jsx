@@ -67,10 +67,6 @@ function persistState(state) {
 export default function QuizaApp() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [darkMode, setDarkMode] = useState(() => {
-    const saved = localStorage.getItem("quiza_darkMode");
-    return saved ? JSON.parse(saved) : false;
-  });
   const [screen, setScreen] = useState("home");
   const [roundQuestions, setRoundQuestions] = useState([]);
   const [stakeInfo, setStakeInfo] = useState(null);
@@ -84,10 +80,6 @@ export default function QuizaApp() {
   useEffect(() => {
     persistState({ stats, walletAddress });
   }, [stats, walletAddress]);
-
-  useEffect(() => {
-    localStorage.setItem("quiza_darkMode", JSON.stringify(darkMode));
-  }, [darkMode]);
 
   useEffect(() => {
     const handleAccountChange = (accounts) => {
@@ -175,13 +167,16 @@ export default function QuizaApp() {
     }
   };
 
-  const isHome = location.pathname === "/" || location.pathname === "/home";
+  const isHome = location.pathname === "/home";
+  const isWelcome = location.pathname === "/";
+  const showSidebar = !isWelcome && location.pathname !== "/quiz" && location.pathname !== "/results";
+  const showMobileNav = !isWelcome && location.pathname !== "/quiz" && location.pathname !== "/results";
 
   return (
-    <div className={`min-h-screen w-full flex font-sans ${darkMode ? "bg-slate-900 text-slate-100" : "bg-white text-slate-800"}`}>
-      {isHome && (
+    <div className="min-h-screen w-full flex font-sans bg-white text-slate-800">
+      {showSidebar && (
         <aside className="hidden lg:flex flex-col w-64 border-r border-slate-100 p-5 shrink-0">
-          <div className="flex items-center px-2 mb-8">
+          <div className="flex items-center px-2 mb-8 cursor-pointer" onClick={() => { setScreen("home"); navigate("/home"); }}>
             <img src="/logo.png" alt="Quiza Logo" className="h-12 lg:h-14 w-auto object-contain" />
           </div>
           <nav className="flex-1 space-y-1">
@@ -210,40 +205,42 @@ export default function QuizaApp() {
       )}
 
       {/* Mobile Bottom Navigation */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex justify-around p-2 z-50 pb-safe">
-        {nav.slice(0, 4).map(({ icon: Icon, label }) => {
-          const isActive = (label === "Home" && isHome) || (label === "Leaderboard" && location.pathname === "/leaderboard");
-          return (
-            <button
-              key={label}
-              onClick={() => {
-                if (label === "Leaderboard") { setScreen("leaderboard"); navigate("/leaderboard"); }
-                else if (label === "Home") { setScreen("home"); navigate("/home"); }
-                else if (label === "Daily Challenge") { alert("Daily Challenge is coming soon!"); }
-                else if (label === "Categories") { 
-                  setScreen("home"); 
-                  navigate("/home"); 
-                  setTimeout(() => document.getElementById("categories-section")?.scrollIntoView({ behavior: "smooth" }), 100); 
-                }
-              }}
-              className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${
-                isActive ? "text-[#4F46E5] bg-indigo-50 dark:bg-indigo-900/30" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-              }`}
-            >
-              <Icon size={20} />
-              <span className="text-[10px] font-semibold">{label}</span>
-            </button>
-          );
-        })}
-      </div>
+      {showMobileNav && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 flex justify-around p-2 z-50 pb-safe">
+          {nav.slice(0, 4).map(({ icon: Icon, label }) => {
+            const isActive = (label === "Home" && isHome) || (label === "Leaderboard" && location.pathname === "/leaderboard");
+            return (
+              <button
+                key={label}
+                onClick={() => {
+                  if (label === "Leaderboard") { setScreen("leaderboard"); navigate("/leaderboard"); }
+                  else if (label === "Home") { setScreen("home"); navigate("/home"); }
+                  else if (label === "Daily Challenge") { alert("Daily Challenge is coming soon!"); }
+                  else if (label === "Categories") { 
+                    setScreen("home"); 
+                    navigate("/home"); 
+                    setTimeout(() => document.getElementById("categories-section")?.scrollIntoView({ behavior: "smooth" }), 100); 
+                  }
+                }}
+                className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${
+                  isActive ? "text-[#4F46E5] bg-indigo-50" : "text-slate-400 hover:text-slate-600"
+                }`}
+              >
+                <Icon size={20} />
+                <span className="text-[10px] font-semibold">{label}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <main className="flex-1 relative pb-20 lg:pb-0">
         <Routes>
-          <Route path="/" element={<WelcomeScreen darkMode={darkMode} onToggleTheme={() => setDarkMode((d) => !d)} />} />
-          <Route path="/home" element={<HomeScreen onStartQuiz={handleStartQuiz} stats={stats} darkMode={darkMode} />} />
-          <Route path="/quiz" element={<QuizScreen roundQuestions={roundQuestions} onRoundComplete={handleRoundComplete} darkMode={darkMode} />} />
-          <Route path="/results" element={<ResultsScreen result={result} stakeInfo={stakeInfo} signer={signer} onPlayAgain={handlePlayAgain} darkMode={darkMode} />} />
-          <Route path="/leaderboard" element={<LeaderboardScreen darkMode={darkMode} walletAddress={walletAddress} />} />
+          <Route path="/" element={<WelcomeScreen />} />
+          <Route path="/home" element={<HomeScreen onStartQuiz={handleStartQuiz} stats={stats} />} />
+          <Route path="/quiz" element={<QuizScreen roundQuestions={roundQuestions} onRoundComplete={handleRoundComplete} />} />
+          <Route path="/results" element={<ResultsScreen result={result} stakeInfo={stakeInfo} signer={signer} onPlayAgain={handlePlayAgain} />} />
+          <Route path="/leaderboard" element={<LeaderboardScreen walletAddress={walletAddress} />} />
         </Routes>
 
         {screen === "verifying" && (
@@ -282,3 +279,4 @@ export default function QuizaApp() {
     </div>
   );
 }
+
