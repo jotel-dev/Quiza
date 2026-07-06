@@ -146,6 +146,14 @@ export default function QuizaApp() {
     };
     onAccountChange(handleAccountChange);
     onChainChange(handleChainChange);
+
+    if (walletAddress) {
+      connectWallet().then(({ signer: s, address }) => {
+        setSigner(s);
+        setWalletAddress(address);
+      }).catch((err) => console.warn("Silent auto-connect failed:", err));
+    }
+
     return () => removeWeb3Listeners();
   }, []);
 
