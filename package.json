@@ -24,6 +24,7 @@
     "firebase": "^12.15.0",
     "firebase-admin": "^14.1.0",
     "framer-motion": "^12.42.2",
+    "googleapis": "^173.0.0",
     "lucide-react": "^1.23.0",
     "postcss": "^8.5.16",
     "react": "^19.2.7",
