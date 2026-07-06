@@ -35,7 +35,7 @@ function StatCard({ label, value, icon: Icon, iconColor, iconBg }) {
   );
 }
 
-export default function Home({ onStartQuiz, stats }) {
+export default function Home({ onStartQuiz, stats, walletAddress, onConnectWallet }) {
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredCategories = categories.filter((cat) =>
@@ -57,16 +57,21 @@ export default function Home({ onStartQuiz, stats }) {
           />
         </div>
         <div className="flex items-center gap-3">
-          <button className="relative w-9 h-9 rounded-full bg-slate-50 flex items-center justify-center">
-            <Bell size={16} className="text-slate-500" />
-            <span className="absolute top-1.5 right-2 w-1.5 h-1.5 rounded-full bg-[#EF4444]" />
-          </button>
-          <div className="flex items-center gap-1.5">
-            <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center">
-              <User size={16} className="text-[#4F46E5]" />
+          {walletAddress ? (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-full shadow-sm">
+              <span className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
+              <span className="text-sm font-semibold text-slate-700 font-mono tracking-tight">
+                {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+              </span>
             </div>
-            <ChevronDown size={14} className="text-slate-300" />
-          </div>
+          ) : (
+            <button 
+              onClick={onConnectWallet} 
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-[#4F46E5] text-sm font-bold rounded-full hover:bg-indigo-100 transition active:scale-95"
+            >
+              Connect Wallet
+            </button>
+          )}
         </div>
       </div>
 
