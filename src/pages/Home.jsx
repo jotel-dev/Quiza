@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Trophy, User,
   Search, Bell, ChevronDown, Play, Calendar, FlaskConical, Landmark,
@@ -36,6 +36,12 @@ function StatCard({ label, value, icon: Icon, iconColor, iconBg }) {
 }
 
 export default function Home({ onStartQuiz, stats }) {
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredCategories = categories.filter((cat) =>
+    cat.label.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="flex-1 p-4 sm:p-6 overflow-y-auto">
       <div className="flex items-center justify-between gap-3 sm:gap-4 mb-6">
@@ -43,7 +49,10 @@ export default function Home({ onStartQuiz, stats }) {
         <div className="flex-1 max-w-sm relative">
           <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300" />
           <input
-            placeholder="Search categories, quizzes..."
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search categories..."
             className="w-full bg-slate-50 border border-slate-100 rounded-full pl-10 pr-4 py-2.5 text-sm text-slate-600 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-200"
           />
         </div>
@@ -95,17 +104,23 @@ export default function Home({ onStartQuiz, stats }) {
 
           <div id="categories-section">
             <h2 className="font-bold text-slate-800 mb-3">Categories</h2>
-            <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
-              {categories.map(({ icon: Icon, label, count, color }) => (
-                <GlassCard key={label} className="p-4 flex flex-col items-center text-center hover:-translate-y-0.5 transition-transform cursor-pointer" onClick={() => alert(`${label} category coming soon!`)}>
-                  <div className="w-11 h-11 rounded-2xl flex items-center justify-center mb-2" style={{ backgroundColor: `${color}1A` }}>
-                    <Icon size={20} style={{ color }} />
-                  </div>
-                  <p className="text-xs font-semibold text-slate-700">{label}</p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">{count} Questions</p>
-                </GlassCard>
-              ))}
-            </div>
+            {filteredCategories.length > 0 ? (
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+                {filteredCategories.map(({ icon: Icon, label, count, color }) => (
+                  <GlassCard key={label} className="p-4 flex flex-col items-center text-center hover:-translate-y-0.5 transition-transform cursor-pointer" onClick={() => alert(`${label} category coming soon!`)}>
+                    <div className="w-11 h-11 rounded-2xl flex items-center justify-center mb-2" style={{ backgroundColor: `${color}1A` }}>
+                      <Icon size={20} style={{ color }} />
+                    </div>
+                    <p className="text-xs font-semibold text-slate-700">{label}</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">{count} Questions</p>
+                  </GlassCard>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-10 bg-slate-50 rounded-[22px] border border-slate-100">
+                <p className="text-slate-500 text-sm">No categories found matching "{searchQuery}"</p>
+              </div>
+            )}
           </div>
         </div>
 
