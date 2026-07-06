@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import verifyRound from "./api/verify-round.js";
 import user from "./api/user.js";

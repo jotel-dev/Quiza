@@ -127,9 +127,10 @@ export async function getWalletBalances(provider, address, network = NETWORK) {
   const rpcUrl = CELO_NETWORKS[network].rpcUrls[0];
   const directProvider = new JsonRpcProvider(rpcUrl);
 
+  const safeAddress = address.toLowerCase();
   const cusd = new Contract(CUSD_ADDRESS[network], ERC20_ABI, directProvider);
-  const celoBalance = await directProvider.getBalance(address);
-  const cusdBalance = await cusd.balanceOf(address);
+  const celoBalance = await directProvider.getBalance(safeAddress);
+  const cusdBalance = await cusd.balanceOf(safeAddress);
   
   return {
     CELO: parseFloat(formatEther(celoBalance)).toFixed(4),

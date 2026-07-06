@@ -42,8 +42,27 @@ export default function StakeModal({ isOpen, onClose, onStaked, onConnect, walle
       setTxState("idle");
       setRoundId(null);
       setErrorMessage("");
+      
+      // Fetch balances if already connected
+      if (fullAddress) {
+        const fetchBalances = async () => {
+          try {
+            const balances = await getWalletBalances(null, fullAddress, NETWORK);
+            const updatedTokens = [
+              { ...INITIAL_TOKENS[0], balance: balances.CELO },
+              { ...INITIAL_TOKENS[1], balance: balances.cUSD },
+            ];
+            setTokens(updatedTokens);
+            // Don't override selectedToken if they already changed it, just update the balance in state
+            setSelectedToken(prev => updatedTokens.find(t => t.symbol === prev.symbol) || updatedTokens[1]);
+          } catch (e) {
+            console.error("Failed to fetch balances silently:", e);
+          }
+        };
+        fetchBalances();
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, fullAddress]);
 
   const handleConnect = async () => {
     setWalletState("connecting");
