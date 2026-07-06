@@ -29,8 +29,9 @@ function StatCard({ label, value, icon: Icon, iconColor, iconBg }) {
   );
 }
 
-export default function Home({ onStartQuiz, stats, walletAddress, onConnectWallet, onDisconnectWallet }) {
+export default function Home({ onStartQuiz, onStartDailyChallenge, stats, walletAddress, onConnectWallet, onDisconnectWallet }) {
   const [showWalletMenu, setShowWalletMenu] = useState(false);
+  const isDailyChallengePlayed = stats?.lastDailyChallengeDate === new Date().toDateString();
 
   return (
     <div className="flex-1 p-4 sm:p-6 overflow-y-auto">
@@ -95,10 +96,11 @@ export default function Home({ onStartQuiz, stats, walletAddress, onConnectWalle
                 Start Quiz
               </button>
               <button 
-                onClick={() => alert("Daily Challenge is coming soon!")}
-                className="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 text-base font-semibold px-6 py-3 rounded-xl shadow-sm hover:bg-slate-50 transition hover:-translate-y-0.5 active:scale-95">
+                onClick={onStartDailyChallenge}
+                disabled={isDailyChallengePlayed}
+                className={`flex items-center gap-2 border text-base font-semibold px-6 py-3 rounded-xl shadow-sm transition ${isDailyChallengePlayed ? "bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:-translate-y-0.5 active:scale-95"}`}>
                 <Calendar size={18} />
-                Daily Challenge
+                {isDailyChallengePlayed ? "Come back tomorrow" : "Daily Challenge"}
               </button>
             </div>
           </div>

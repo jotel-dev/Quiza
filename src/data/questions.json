@@ -11,6 +11,9 @@
     { "id": "m008", "category": "Math", "difficulty": "easy", "question": "What is 100 divided by 4?", "options": ["20", "25", "30", "40"], "answer": 1 },
     { "id": "m009", "category": "Math", "difficulty": "medium", "question": "What is 2 to the power of 10?", "options": ["512", "1024", "2048", "256"], "answer": 1 },
     { "id": "m010", "category": "Math", "difficulty": "easy", "question": "What number comes next: 2, 4, 8, 16, ?", "options": ["24", "28", "32", "36"], "answer": 2 },
+    { "id": "m011", "category": "Math", "difficulty": "hard", "question": "What is the derivative of x^3 + 2x?", "options": ["3x^2 + 2", "3x^2", "x^2 + 2", "2x^2 + 3"], "answer": 0 },
+    { "id": "m012", "category": "Math", "difficulty": "hard", "question": "What is the integral of 2x dx?", "options": ["x^2", "x^2 + C", "2x^2 + C", "x + C"], "answer": 1 },
+    { "id": "m013", "category": "Math", "difficulty": "hard", "question": "What is the value of log10(1000)?", "options": ["10", "100", "2", "3"], "answer": 3 },
 
     { "id": "g001", "category": "Geography", "difficulty": "easy", "question": "Which river is the longest in the world?", "options": ["Amazon River", "Nile River", "Yangtze River", "Mississippi River"], "answer": 1 },
     { "id": "g002", "category": "Geography", "difficulty": "easy", "question": "What is the largest continent by land area?", "options": ["Africa", "Asia", "North America", "Europe"], "answer": 1 },
@@ -49,6 +52,8 @@
     { "id": "w002", "category": "Web3", "difficulty": "easy", "question": "What is a stablecoin designed to do?", "options": ["Increase in value quickly", "Maintain a stable price", "Replace gold", "Mine new blocks"], "answer": 1 },
     { "id": "w003", "category": "Web3", "difficulty": "medium", "question": "What wallet is widely used for Celo-based payments in emerging markets?", "options": ["MetaMask", "MiniPay", "Trust Wallet", "Phantom"], "answer": 1 },
     { "id": "w004", "category": "Web3", "difficulty": "medium", "question": "What is the purpose of a smart contract?", "options": ["Store passwords", "Automatically execute agreed terms in code", "Mine cryptocurrency", "Send emails"], "answer": 1 },
-    { "id": "w005", "category": "Web3", "difficulty": "easy", "question": "What does 'onchain' mean?", "options": ["Stored on a company server", "Recorded on a blockchain", "Saved in a spreadsheet", "Printed on paper"], "answer": 1 }
+    { "id": "w005", "category": "Web3", "difficulty": "easy", "question": "What does 'onchain' mean?", "options": ["Stored on a company server", "Recorded on a blockchain", "Saved in a spreadsheet", "Printed on paper"], "answer": 1 },
+    { "id": "w006", "category": "Web3", "difficulty": "hard", "question": "What is a 'flash loan' in DeFi?", "options": ["A loan that must be repaid within the same transaction block", "A loan with very high interest rates", "A loan that takes minutes to process", "A loan for buying NFTs"], "answer": 0 },
+    { "id": "w007", "category": "Web3", "difficulty": "hard", "question": "Which consensus mechanism does Ethereum currently use?", "options": ["Proof of Work", "Proof of Stake", "Delegated Proof of Stake", "Proof of Authority"], "answer": 1 }
   ]
 }
