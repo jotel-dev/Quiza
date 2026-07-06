@@ -11,7 +11,7 @@ const INITIAL_TOKENS = [
 const WIN_MULTIPLIER = 1.5;
 
 export default function StakeModal({ isOpen, onClose, onStaked, onConnect, walletAddress }) {
-  const [walletState, setWalletState] = useState("disconnected");
+  const [walletState, setWalletState] = useState(walletAddress ? "connected" : "disconnected");
   const [address, setAddress] = useState(walletAddress ? walletAddress.slice(0, 6) + "..." + walletAddress.slice(-4) : null);
   const [fullAddress, setFullAddress] = useState(walletAddress || null);
   const [signer, setSigner] = useState(null);

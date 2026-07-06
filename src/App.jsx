@@ -7,6 +7,7 @@ const nav = [
   { icon: Grid3x3, label: "Categories" },
   { icon: Timer, label: "Daily Challenge" },
   { icon: Trophy, label: "Leaderboard" },
+  { icon: User, label: "Profile" },
 ];
 
 import questionBank from "./data/questions.json";
@@ -27,7 +28,17 @@ import ResultsScreen from "./pages/Results.jsx";
 import WelcomeScreen from "./pages/Welcome.jsx";
 import LeaderboardScreen from "./pages/Leaderboard.jsx";
 import CategoriesScreen from "./pages/Categories.jsx";
+import ProfileScreen from "./pages/Profile.jsx";
 import StakeModal from "./components/StakeModal.jsx";
+
+const getWeekIdentifier = () => {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+  const yearStart = new Date(d.getFullYear(), 0, 1);
+  const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return `${d.getFullYear()}-W${weekNo}`;
+};
 
 
 const WIN_MULTIPLIER = 1.5;
@@ -40,6 +51,32 @@ function pickRoundQuestions() {
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr.slice(0, QUESTIONS_PER_ROUND);
+}
+
+function pickDailyChallengeQuestions() {
+  const mathHard = questionBank.questions.filter(q => q.category === "Math" && q.difficulty === "hard");
+  const web3Hard = questionBank.questions.filter(q => q.category === "Web3" && q.difficulty === "hard");
+
+  for (let i = mathHard.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [mathHard[i], mathHard[j]] = [mathHard[j], mathHard[i]];
+  }
+  const selectedMath = mathHard.slice(0, 3);
+
+  for (let i = web3Hard.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [web3Hard[i], web3Hard[j]] = [web3Hard[j], web3Hard[i]];
+  }
+  const selectedWeb3 = web3Hard.slice(0, 2);
+
+  const combined = [...selectedMath, ...selectedWeb3];
+  
+  for (let i = combined.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [combined[i], combined[j]] = [combined[j], combined[i]];
+  }
+  
+  return combined;
 }
 
 function loadPersistedState() {
@@ -69,13 +106,27 @@ export default function QuizaApp() {
   const [signer, setSigner] = useState(null);
   const [result, setResult] = useState(null);
   const [verifyError, setVerifyError] = useState(null);
-  const [stats, setStats] = useState(() => loadPersistedState()?.stats || { played: 0, bestScore: 0, accuracy: 0, streak: 0 });
+  const [isDailyChallenge, setIsDailyChallenge] = useState(false);
+  const [stats, setStats] = useState(() => {
+    const loaded = loadPersistedState()?.stats;
+    return loaded ? { 
+      played: loaded.played || 0, 
+      bestScore: loaded.bestScore || 0, 
+      accuracy: loaded.accuracy || 0, 
+      streak: loaded.streak || 0, 
+      lastPlayedDate: loaded.lastPlayedDate || null, 
+      lastDailyChallengeDate: loaded.lastDailyChallengeDate || null,
+      weeklyQuizzes: loaded.weeklyQuizzes || 0,
+      weekIdentifier: loaded.weekIdentifier || null
+    } : { played: 0, bestScore: 0, accuracy: 0, streak: 0, lastPlayedDate: null, lastDailyChallengeDate: null, weeklyQuizzes: 0, weekIdentifier: null };
+  });
+  const [recentGames, setRecentGames] = useState(() => loadPersistedState()?.recentGames || []);
   const [walletAddress, setWalletAddress] = useState(() => loadPersistedState()?.walletAddress || null);
   const [isStakeModalOpen, setIsStakeModalOpen] = useState(false);
 
   useEffect(() => {
-    persistState({ stats, walletAddress });
-  }, [stats, walletAddress]);
+    persistState({ stats, walletAddress, recentGames });
+  }, [stats, walletAddress, recentGames]);
 
   useEffect(() => {
     const handleAccountChange = (accounts) => {
@@ -99,6 +150,21 @@ export default function QuizaApp() {
   }, []);
 
   const handleStartQuiz = () => {
+    setIsDailyChallenge(false);
+    if (!walletAddress) {
+      setIsStakeModalOpen(true);
+    } else {
+      setScreen("stake");
+    }
+  };
+
+  const handleStartDailyChallenge = () => {
+    const today = new Date().toDateString();
+    if (stats.lastDailyChallengeDate === today) {
+      alert("You have already played the Daily Challenge today! Come back tomorrow.");
+      return;
+    }
+    setIsDailyChallenge(true);
     if (!walletAddress) {
       setIsStakeModalOpen(true);
     } else {
@@ -109,7 +175,11 @@ export default function QuizaApp() {
   const handleStaked = (info) => {
     setStakeInfo(info);
     setSigner(info.signer);
-    setRoundQuestions(pickRoundQuestions());
+    if (isDailyChallenge) {
+      setRoundQuestions(pickDailyChallengeQuestions());
+    } else {
+      setRoundQuestions(pickRoundQuestions());
+    }
     setScreen("play");
     navigate("/quiz");
   };
@@ -129,12 +199,55 @@ export default function QuizaApp() {
       const payout = verified.won ? (stakeAmt * WIN_MULTIPLIER).toFixed(4) : null;
       setResult({ correct, wrong, total, won: verified.won, payout, txHash: verified.txHash });
 
-      setStats((s) => ({
-        played: s.played + 1,
-        bestScore: Math.max(s.bestScore, correct * 10),
-        accuracy: Math.round((correct / total) * 100),
-        streak: verified.won ? s.streak + 1 : 0,
-      }));
+      setStats((s) => {
+        const today = new Date();
+        const todayStr = today.toDateString();
+        
+        let newStreak = s.streak;
+        if (s.lastPlayedDate) {
+          const lastDate = new Date(s.lastPlayedDate);
+          const yesterday = new Date(today);
+          yesterday.setDate(yesterday.getDate() - 1);
+          if (lastDate.toDateString() === yesterday.toDateString()) {
+            newStreak += 1;
+          } else if (lastDate.toDateString() !== todayStr) {
+            newStreak = 1;
+          }
+        } else {
+          newStreak = 1;
+        }
+
+        const currentWeek = getWeekIdentifier();
+        let newWeeklyQuizzes = s.weeklyQuizzes;
+        if (s.weekIdentifier !== currentWeek) {
+          newWeeklyQuizzes = 1;
+        } else {
+          if (newWeeklyQuizzes < 10) newWeeklyQuizzes += 1;
+        }
+
+        return {
+          played: s.played + 1,
+          bestScore: Math.max(s.bestScore, correct * 10),
+          accuracy: Math.round((correct / total) * 100),
+          streak: newStreak,
+          lastPlayedDate: todayStr,
+          lastDailyChallengeDate: isDailyChallenge ? todayStr : s.lastDailyChallengeDate,
+          weeklyQuizzes: newWeeklyQuizzes,
+          weekIdentifier: currentWeek
+        };
+      });
+
+      setRecentGames((prev) => {
+        const game = {
+          id: Date.now().toString(),
+          type: isDailyChallenge ? "Daily Challenge" : "Standard Quiz",
+          score: correct * 10,
+          won: verified.won,
+          timestamp: Date.now()
+        };
+        return [game, ...prev].slice(0, 10); // Keep last 10
+      });
+
       setScreen("results");
       navigate("/results");
     } catch (err) {
@@ -177,15 +290,16 @@ export default function QuizaApp() {
           </div>
           <nav className="flex-1 space-y-1">
             {nav.map(({ icon: Icon, label }) => {
-              const isActive = (label === "Home" && isHome) || (label === "Leaderboard" && location.pathname === "/leaderboard") || (label === "Categories" && location.pathname === "/categories");
+              const isActive = (label === "Home" && isHome) || (label === "Leaderboard" && location.pathname === "/leaderboard") || (label === "Categories" && location.pathname === "/categories") || (label === "Profile" && location.pathname === "/profile");
               return (
                 <button 
                   key={label} 
                   onClick={() => {
                     if (label === "Leaderboard") { setScreen("leaderboard"); navigate("/leaderboard"); }
                     else if (label === "Home") { setScreen("home"); navigate("/home"); }
-                    else if (label === "Daily Challenge") { alert("Daily Challenge is coming soon!"); }
+                    else if (label === "Daily Challenge") { handleStartDailyChallenge(); }
                     else if (label === "Categories") { setScreen("categories"); navigate("/categories"); }
+                    else if (label === "Profile") { setScreen("profile"); navigate("/profile"); }
                   }}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${isActive ? "bg-[#4F46E5] text-white shadow-md shadow-indigo-200" : "text-slate-500 hover:bg-slate-50"}`}>
                   <Icon size={18} />{label}
@@ -199,16 +313,17 @@ export default function QuizaApp() {
       {/* Mobile Bottom Navigation */}
       {showMobileNav && (
         <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 flex justify-around p-2 z-50 pb-safe">
-          {nav.slice(0, 4).map(({ icon: Icon, label }) => {
-            const isActive = (label === "Home" && isHome) || (label === "Leaderboard" && location.pathname === "/leaderboard") || (label === "Categories" && location.pathname === "/categories");
+          {nav.slice(0, 5).map(({ icon: Icon, label }) => {
+            if (label === "Daily Challenge") return null; // Hide from mobile bar to fit 4 items
+            const isActive = (label === "Home" && isHome) || (label === "Leaderboard" && location.pathname === "/leaderboard") || (label === "Categories" && location.pathname === "/categories") || (label === "Profile" && location.pathname === "/profile");
             return (
               <button
                 key={label}
                 onClick={() => {
                   if (label === "Leaderboard") { setScreen("leaderboard"); navigate("/leaderboard"); }
                   else if (label === "Home") { setScreen("home"); navigate("/home"); }
-                  else if (label === "Daily Challenge") { alert("Daily Challenge is coming soon!"); }
                   else if (label === "Categories") { setScreen("categories"); navigate("/categories"); }
+                  else if (label === "Profile") { setScreen("profile"); navigate("/profile"); }
                 }}
                 className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${
                   isActive ? "text-[#4F46E5] bg-indigo-50" : "text-slate-400 hover:text-slate-600"
@@ -225,11 +340,12 @@ export default function QuizaApp() {
       <main className="flex-1 relative pb-20 lg:pb-0">
         <Routes>
           <Route path="/" element={<WelcomeScreen />} />
-          <Route path="/home" element={<HomeScreen onStartQuiz={handleStartQuiz} stats={stats} walletAddress={walletAddress} onConnectWallet={handleConnectWallet} onDisconnectWallet={() => { setWalletAddress(null); setSigner(null); }} />} />
+          <Route path="/home" element={<HomeScreen onStartQuiz={handleStartQuiz} onStartDailyChallenge={handleStartDailyChallenge} stats={stats} recentGames={recentGames} walletAddress={walletAddress} onConnectWallet={handleConnectWallet} onDisconnectWallet={() => { setWalletAddress(null); setSigner(null); }} />} />
           <Route path="/quiz" element={<QuizScreen roundQuestions={roundQuestions} onRoundComplete={handleRoundComplete} />} />
           <Route path="/results" element={<ResultsScreen result={result} stakeInfo={stakeInfo} signer={signer} onPlayAgain={handlePlayAgain} />} />
           <Route path="/leaderboard" element={<LeaderboardScreen walletAddress={walletAddress} />} />
           <Route path="/categories" element={<CategoriesScreen />} />
+          <Route path="/profile" element={<ProfileScreen stats={stats} recentGames={recentGames} walletAddress={walletAddress} onConnectWallet={handleConnectWallet} onDisconnectWallet={() => { setWalletAddress(null); setSigner(null); }} />} />
         </Routes>
 
         {screen === "verifying" && (
