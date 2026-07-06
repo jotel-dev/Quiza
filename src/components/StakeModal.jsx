@@ -64,7 +64,7 @@ export default function StakeModal({ isOpen, onClose, onStaked, onConnect, walle
       setFullAddress(addr);
       setIsMiniPay(isMiniPay);
       setWalletState("connected");
-      onConnect?.();
+      onConnect?.(addr, signer);
     } catch (error) {
       console.error("Wallet connection failed:", error);
       setErrorMessage(error?.message || "Connection failed. Please try again.");

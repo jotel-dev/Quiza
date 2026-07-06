@@ -148,7 +148,7 @@ export default function QuizaApp() {
     onChainChange(handleChainChange);
 
     if (walletAddress) {
-      connectWallet().then(({ signer: s, address }) => {
+      connectWallet(true).then(({ signer: s, address }) => {
         setSigner(s);
         setWalletAddress(address);
       }).catch((err) => console.warn("Silent auto-connect failed:", err));
@@ -385,7 +385,7 @@ export default function QuizaApp() {
           isOpen={isStakeModalOpen || screen === "stake"}
           onClose={() => { setIsStakeModalOpen(false); setScreen("home"); navigate("/"); }}
           onStaked={handleStaked}
-          onConnect={handleConnectWallet}
+          onConnect={(addr, s) => { setWalletAddress(addr); setSigner(s); }}
           walletAddress={walletAddress}
           signer={signer}
         />

@@ -65,14 +65,22 @@ const ERC20_ABI = [
  * Connects to the wallet injected by MiniPay (or any EIP-1193 wallet as fallback).
  * Returns { provider, signer, address, isMiniPay }.
  */
-export async function connectWallet() {
+export async function connectWallet(silent = false) {
   if (!window.ethereum) {
     throw new Error("No wallet found. Open this app inside MiniPay or install a Celo-compatible wallet.");
   }
-  const provider = new BrowserProvider(window.ethereum);
-  await provider.send("eth_requestAccounts", []);
+
+  // Request accounts directly first for better wallet compatibility
+  const method = silent ? "eth_accounts" : "eth_requestAccounts";
+  const accounts = await window.ethereum.request({ method });
+  if (!accounts || accounts.length === 0) {
+    throw new Error("No accounts returned from wallet.");
+  }
+  const address = accounts[0];
+
+  // Initialize provider with "any" to allow dynamic network changes without throwing
+  const provider = new BrowserProvider(window.ethereum, "any");
   const signer = await provider.getSigner();
-  const address = await signer.getAddress();
 
   let isMiniPay = false;
   try {
