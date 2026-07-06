@@ -231,7 +231,7 @@ export default function QuizaApp() {
         })}
       </div>
 
-      <main className="flex-1 relative">
+      <main className="flex-1 relative pb-20 lg:pb-0">
         <Routes>
           <Route path="/" element={<WelcomeScreen darkMode={darkMode} onToggleTheme={() => setDarkMode((d) => !d)} />} />
           <Route path="/home" element={<HomeScreen onStartQuiz={handleStartQuiz} stats={stats} darkMode={darkMode} />} />
