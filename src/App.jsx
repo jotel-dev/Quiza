@@ -192,8 +192,13 @@ export default function QuizaApp() {
                   key={label} 
                   onClick={() => {
                     if (label === "Leaderboard") { setScreen("leaderboard"); navigate("/leaderboard"); }
-                    else if (label === "Home") { setScreen("home"); navigate("/"); }
+                    else if (label === "Home") { setScreen("home"); navigate("/home"); }
                     else if (label === "Daily Challenge") { alert("Daily Challenge is coming soon!"); }
+                    else if (label === "Categories") { 
+                      setScreen("home"); 
+                      navigate("/home"); 
+                      setTimeout(() => document.getElementById("categories-section")?.scrollIntoView({ behavior: "smooth" }), 100); 
+                    }
                   }}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${isActive ? "bg-[#4F46E5] text-white shadow-md shadow-indigo-200" : "text-slate-500 hover:bg-slate-50"}`}>
                   <Icon size={18} />{label}
@@ -213,8 +218,13 @@ export default function QuizaApp() {
               key={label}
               onClick={() => {
                 if (label === "Leaderboard") { setScreen("leaderboard"); navigate("/leaderboard"); }
-                else if (label === "Home") { setScreen("home"); navigate("/"); }
+                else if (label === "Home") { setScreen("home"); navigate("/home"); }
                 else if (label === "Daily Challenge") { alert("Daily Challenge is coming soon!"); }
+                else if (label === "Categories") { 
+                  setScreen("home"); 
+                  navigate("/home"); 
+                  setTimeout(() => document.getElementById("categories-section")?.scrollIntoView({ behavior: "smooth" }), 100); 
+                }
               }}
               className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${
                 isActive ? "text-[#4F46E5] bg-indigo-50 dark:bg-indigo-900/30" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"

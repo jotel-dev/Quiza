@@ -93,11 +93,11 @@ export default function Home({ onStartQuiz, stats }) {
             </div>
           </GlassCard>
 
-          <div>
+          <div id="categories-section">
             <h2 className="font-bold text-slate-800 mb-3">Categories</h2>
             <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
               {categories.map(({ icon: Icon, label, count, color }) => (
-                <GlassCard key={label} className="p-4 flex flex-col items-center text-center hover:-translate-y-0.5 transition-transform cursor-pointer">
+                <GlassCard key={label} className="p-4 flex flex-col items-center text-center hover:-translate-y-0.5 transition-transform cursor-pointer" onClick={() => alert(`${label} category coming soon!`)}>
                   <div className="w-11 h-11 rounded-2xl flex items-center justify-center mb-2" style={{ backgroundColor: `${color}1A` }}>
                     <Icon size={20} style={{ color }} />
                   </div>
