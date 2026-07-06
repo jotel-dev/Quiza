@@ -28,9 +28,7 @@ export default function Welcome({ darkMode, onToggleTheme }) {
         }}
         className="flex flex-col items-center gap-4"
       >
-        <div className={`w-24 h-24 rounded-3xl flex items-center justify-center shadow-[0_0_40px_rgba(255,255,255,0.3)] ${darkMode ? "bg-slate-800" : "bg-white"}`}>
-          <span className="text-4xl font-extrabold text-white">Q</span>
-        </div>
+        <img src="/logo.png" alt="Quiza Logo" className="w-28 h-28 object-contain drop-shadow-[0_0_40px_rgba(255,255,255,0.3)]" />
         <motion.div 
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}

@@ -181,14 +181,8 @@ export default function QuizaApp() {
     <div className={`min-h-screen w-full flex font-sans ${darkMode ? "bg-slate-900 text-slate-100" : "bg-white text-slate-800"}`}>
       {isHome && (
         <aside className="hidden lg:flex flex-col w-64 border-r border-slate-100 p-5 shrink-0">
-          <div className="flex items-center gap-2 px-2 mb-8">
-            <div className="w-9 h-9 rounded-xl bg-[#4F46E5] flex items-center justify-center shadow-lg shadow-indigo-200">
-              <span className="text-white text-lg">?</span>
-            </div>
-            <div className="leading-tight">
-              <p className="font-extrabold text-[#4F46E5] text-sm tracking-tight">QUIZA</p>
-              <p className="font-extrabold text-slate-800 text-sm tracking-tight -mt-1">QUEST</p>
-            </div>
+          <div className="flex items-center px-2 mb-8">
+            <img src="/logo.png" alt="Quiza Logo" className="h-12 lg:h-14 w-auto object-contain" />
           </div>
           <nav className="flex-1 space-y-1">
             {nav.map(({ icon: Icon, label }) => {

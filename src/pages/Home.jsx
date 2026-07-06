@@ -38,7 +38,8 @@ function StatCard({ label, value, icon: Icon, iconColor, iconBg }) {
 export default function Home({ onStartQuiz, stats }) {
   return (
     <div className="flex-1 p-4 sm:p-6 overflow-y-auto">
-      <div className="flex items-center justify-between gap-4 mb-6">
+      <div className="flex items-center justify-between gap-3 sm:gap-4 mb-6">
+        <img src="/logo.png" alt="Quiza Logo" className="h-9 sm:h-11 w-auto object-contain lg:hidden shrink-0" />
         <div className="flex-1 max-w-sm relative">
           <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300" />
           <input
