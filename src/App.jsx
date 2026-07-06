@@ -387,6 +387,7 @@ export default function QuizaApp() {
           onStaked={handleStaked}
           onConnect={handleConnectWallet}
           walletAddress={walletAddress}
+          signer={signer}
         />
       </main>
     </div>

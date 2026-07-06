@@ -10,11 +10,15 @@ const INITIAL_TOKENS = [
 
 const WIN_MULTIPLIER = 1.5;
 
-export default function StakeModal({ isOpen, onClose, onStaked, onConnect, walletAddress }) {
+export default function StakeModal({ isOpen, onClose, onStaked, onConnect, walletAddress, signer: initialSigner }) {
   const [walletState, setWalletState] = useState(walletAddress ? "connected" : "disconnected");
   const [address, setAddress] = useState(walletAddress ? walletAddress.slice(0, 6) + "..." + walletAddress.slice(-4) : null);
   const [fullAddress, setFullAddress] = useState(walletAddress || null);
-  const [signer, setSigner] = useState(null);
+  const [signer, setSigner] = useState(initialSigner || null);
+
+  useEffect(() => {
+    if (initialSigner) setSigner(initialSigner);
+  }, [initialSigner]);
   const [isMiniPay, setIsMiniPay] = useState(false);
   const [tokens, setTokens] = useState(INITIAL_TOKENS);
   const [selectedToken, setSelectedToken] = useState(INITIAL_TOKENS[1]);
@@ -231,12 +235,19 @@ export default function StakeModal({ isOpen, onClose, onStaked, onConnect, walle
             </div>
 
             <button
-              onClick={handleStake}
-              disabled={parseFloat(selectedToken.balance) < stakeAmt}
+              onClick={!signer ? handleConnect : handleStake}
+              disabled={signer && parseFloat(selectedToken.balance) < stakeAmt}
               className="w-full mt-5 flex items-center justify-center gap-2 bg-[#0A4C86] text-white text-sm font-semibold py-3 rounded-xl shadow-md shadow-blue-200 hover:opacity-90 transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {parseFloat(selectedToken.balance) < stakeAmt ? "Insufficient Balance" : "Stake & Start Quiz"}
-              {parseFloat(selectedToken.balance) >= stakeAmt && <ChevronRight size={15} />}
+              {!signer ? (
+                walletState === "connecting" ? "Connecting..." : "Connect Wallet to Stake"
+              ) : parseFloat(selectedToken.balance) < stakeAmt ? (
+                "Insufficient Balance"
+              ) : (
+                <>
+                  Stake & Start Quiz <ChevronRight size={15} />
+                </>
+              )}
             </button>
           </div>
         )}
