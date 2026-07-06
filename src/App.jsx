@@ -7,11 +7,6 @@ const nav = [
   { icon: Grid3x3, label: "Categories" },
   { icon: Timer, label: "Daily Challenge" },
   { icon: Trophy, label: "Leaderboard" },
-  { icon: Gift, label: "Rewards" },
-  { icon: Award, label: "Achievements" },
-  { icon: Wallet, label: "Wallet" },
-  { icon: User, label: "Profile" },
-  { icon: Settings, label: "Settings" },
 ];
 
 import questionBank from "./data/questions.json";
