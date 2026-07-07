@@ -192,9 +192,12 @@ export default function QuizaApp() {
     navigate("/quiz");
   };
 
+  const [verifyMessage, setVerifyMessage] = useState("Checking answers and confirming on-chain");
+
   const handleRoundComplete = async ({ correct, wrong, total, questionIds, submittedAnswers }) => {
     setScreen("verifying");
     setVerifyError(null);
+    setVerifyMessage("Checking answers and confirming on-chain");
     try {
       const verified = await submitRoundForVerification({
         roundId: stakeInfo.roundId,
@@ -207,6 +210,7 @@ export default function QuizaApp() {
       const payout = verified.won ? (stakeAmt * WIN_MULTIPLIER).toFixed(4) : null;
       setResult({ correct, wrong, total, won: verified.won, payout, txHash: verified.txHash });
 
+      let computedStreak = 1;
       setStats((s) => {
         const today = new Date();
         const todayStr = today.toDateString();
@@ -224,6 +228,8 @@ export default function QuizaApp() {
         } else {
           newStreak = 1;
         }
+
+        computedStreak = newStreak;
 
         const currentWeek = getWeekIdentifier();
         let newWeeklyQuizzes = s.weeklyQuizzes;
@@ -244,6 +250,14 @@ export default function QuizaApp() {
           weekIdentifier: currentWeek
         };
       });
+
+      setVerifyMessage("Saving score to leaderboard...");
+      try {
+        const { submitScoreToLeaderboard } = await import("./lib/firebase.js");
+        await submitScoreToLeaderboard(walletAddress, correct, total, computedStreak);
+      } catch (err) {
+        console.error("Failed to submit score to leaderboard:", err);
+      }
 
       setRecentGames((prev) => {
         const game = {
@@ -374,7 +388,7 @@ export default function QuizaApp() {
                 <>
                   <Loader2 size={32} className="mx-auto text-[#4F46E5] animate-spin" />
                   <p className="text-base font-bold text-slate-800 mt-4">Verifying your round...</p>
-                  <p className="text-sm text-slate-400 mt-1">Checking answers and confirming on-chain</p>
+                  <p className="text-sm text-slate-400 mt-1">{verifyMessage}</p>
                 </>
               )}
             </div>

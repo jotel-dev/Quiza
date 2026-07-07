@@ -16,18 +16,18 @@ export default function Leaderboard({ walletAddress }) {
 
   useEffect(() => {
     import("../lib/firebase.js").then(({ db }) => {
-      import("firebase/firestore").then(({ collection, query, where, orderBy, limit, onSnapshot }) => {
+      import("firebase/firestore").then(({ collection, query, where, orderBy, limit, onSnapshot, getDoc, doc, getCountFromServer }) => {
         const q = query(
           collection(db, "players"),
-          where("gamesPlayed", ">", 0),
-          orderBy("gamesPlayed", "desc"), // Firestore needs this if where clause is used without composite index
+          where("totalPoints", ">", 0),
+          orderBy("totalPoints", "desc"),
           limit(50)
         );
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
+        const unsubscribe = onSnapshot(q, async (snapshot) => {
           let docs = [];
-          snapshot.forEach((doc) => {
-            const data = doc.data();
+          snapshot.forEach((d) => {
+            const data = d.data();
             data.accuracy = data.totalQuestions > 0 ? (data.correctAnswers * 100) / data.totalQuestions : 0;
             docs.push(data);
           });
@@ -50,8 +50,27 @@ export default function Leaderboard({ walletAddress }) {
             if (userIndex !== -1) {
               setCurrentUserRank({ ...docs[userIndex], rank: userIndex + 1 });
             } else {
-              setCurrentUserRank(null);
+              // User not in top 50, fetch their doc and calculate rank
+              try {
+                const userRef = doc(db, "players", walletAddress);
+                const userSnap = await getDoc(userRef);
+                if (userSnap.exists()) {
+                  const userData = userSnap.data();
+                  // Get rank by counting how many players have more points
+                  const higherScoreQ = query(collection(db, "players"), where("totalPoints", ">", userData.totalPoints));
+                  const countSnap = await getCountFromServer(higherScoreQ);
+                  const rank = countSnap.data().count + 1;
+                  setCurrentUserRank({ ...userData, rank });
+                } else {
+                  setCurrentUserRank(null);
+                }
+              } catch (err) {
+                console.error("Failed to fetch user rank:", err);
+                setCurrentUserRank(null);
+              }
             }
+          } else {
+            setCurrentUserRank(null);
           }
         }, (err) => {
           console.error("Firebase snapshot error:", err);
