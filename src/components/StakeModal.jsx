@@ -121,6 +121,8 @@ export default function StakeModal({ isOpen, onClose, onStaked, onConnect, walle
       let errMsg = error?.message || "Transaction failed or was rejected.";
       if (errMsg.toLowerCase().includes("user rejected") || errMsg.includes("4001")) {
         errMsg = "Transaction was rejected in your wallet. Please try again.";
+      } else if (errMsg.includes("eth_estimateGas") || errMsg.includes("insufficient funds")) {
+        errMsg = "Transaction failed. Please ensure you have enough CELO to cover the network gas fee.";
       } else if (errMsg.includes("could not coalesce error")) {
         // Ethers v6 often wraps RPC errors in a huge JSON blob if it can't map the code
         const match = errMsg.match(/"message":\s*"([^"]+)"/);
