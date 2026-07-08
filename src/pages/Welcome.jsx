@@ -28,7 +28,7 @@ export default function Welcome() {
         }}
         className="flex flex-col items-center gap-4"
       >
-        <img src="/logo.png" alt="Quiza Logo" className="w-28 h-28 object-contain drop-shadow-[0_8px_30px_rgba(79,70,229,0.15)] mix-blend-multiply" />
+        <img src="/logo.png" alt="Quiza Logo" className="w-28 h-28 object-contain mix-blend-multiply contrast-[1.2] brightness-[1.1]" style={{ clipPath: "inset(2px)" }} />
         <motion.div 
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}

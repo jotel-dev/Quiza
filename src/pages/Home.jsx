@@ -37,7 +37,7 @@ export default function Home({ onStartQuiz, onStartDailyChallenge, stats, recent
     <div className="flex-1 p-4 sm:p-6 overflow-y-auto">
       <div className="flex items-center justify-between gap-3 sm:gap-4 mb-6">
         <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="Quiza Logo" className="h-9 sm:h-11 w-auto object-contain lg:hidden shrink-0 mix-blend-multiply" />
+          <img src="/logo.png" alt="Quiza Logo" className="h-9 sm:h-11 w-auto object-contain lg:hidden shrink-0 mix-blend-multiply contrast-[1.2] brightness-[1.1]" style={{ clipPath: "inset(2px)" }} />
           <h1 className="text-xl font-bold text-slate-800 lg:hidden">Quiza</h1>
         </div>
         <div className="flex items-center gap-3">

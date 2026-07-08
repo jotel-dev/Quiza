@@ -308,7 +308,7 @@ export default function QuizaApp() {
       {showSidebar && (
         <aside className="hidden lg:flex flex-col w-64 border-r border-slate-100 p-5 shrink-0">
           <div className="flex items-center px-2 mb-8 cursor-pointer" onClick={() => { setScreen("home"); navigate("/home"); }}>
-            <img src="/logo.png" alt="Quiza Logo" className="h-12 lg:h-14 w-auto object-contain mix-blend-multiply" />
+            <img src="/logo.png" alt="Quiza Logo" className="h-12 lg:h-14 w-auto object-contain mix-blend-multiply contrast-[1.2] brightness-[1.1]" style={{ clipPath: "inset(2px)" }} />
           </div>
           <nav className="flex-1 space-y-1">
             {nav.map(({ icon: Icon, label }) => {
