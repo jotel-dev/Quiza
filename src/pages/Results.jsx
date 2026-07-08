@@ -44,14 +44,14 @@ function ConfettiField() {
 }
 
 export default function Results({ result, stakeInfo, signer, onPlayAgain }) {
+  const accuracy = Math.round((result.correct / result.total) * 100);
+  const won = result.won;
+  const payout = result.payout;
+
   const [showTrophy, setShowTrophy] = useState(false);
   const [withdrawState, setWithdrawState] = useState("idle");
   const [withdrawError, setWithdrawError] = useState(null);
   const [payoutReady, setPayoutReady] = useState(!won);
-
-  const accuracy = Math.round((result.correct / result.total) * 100);
-  const won = result.won;
-  const payout = result.payout;
   const scoreCount = useCountUp(result.correct * 10, 1000, showTrophy);
   const accuracyCount = useCountUp(accuracy, 1000, showTrophy);
 
