@@ -13,13 +13,13 @@ export default function Leaderboard({ walletAddress }) {
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentUserRank, setCurrentUserRank] = useState(null);
+  const [errorMsg, setErrorMsg] = useState(null);
 
   useEffect(() => {
     import("../lib/firebase.js").then(({ db }) => {
-      import("firebase/firestore").then(({ collection, query, where, orderBy, limit, onSnapshot, getDoc, doc, getCountFromServer }) => {
+      import("firebase/firestore").then(({ collection, query, orderBy, limit, onSnapshot, getDoc, doc, getCountFromServer, where }) => {
         const q = query(
           collection(db, "players"),
-          where("totalPoints", ">", 0),
           orderBy("totalPoints", "desc"),
           limit(50)
         );
@@ -34,8 +34,8 @@ export default function Leaderboard({ walletAddress }) {
 
           // Sort in memory: Points DESC, Accuracy DESC, LastUpdated ASC
           docs.sort((a, b) => {
-            if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
-            if (b.accuracy !== a.accuracy) return b.accuracy - a.accuracy;
+            if (b.totalPoints !== a.totalPoints) return (b.totalPoints || 0) - (a.totalPoints || 0);
+            if (b.accuracy !== a.accuracy) return (b.accuracy || 0) - (a.accuracy || 0);
             const aTime = a.lastUpdated?.toMillis?.() || 0;
             const bTime = b.lastUpdated?.toMillis?.() || 0;
             return aTime - bTime;
@@ -44,20 +44,19 @@ export default function Leaderboard({ walletAddress }) {
           const top20 = docs.slice(0, 20);
           setPlayers(top20);
           setLoading(false);
+          setErrorMsg(null);
 
           if (walletAddress) {
             const userIndex = docs.findIndex((p) => p.address === walletAddress);
             if (userIndex !== -1) {
               setCurrentUserRank({ ...docs[userIndex], rank: userIndex + 1 });
             } else {
-              // User not in top 50, fetch their doc and calculate rank
               try {
                 const userRef = doc(db, "players", walletAddress);
                 const userSnap = await getDoc(userRef);
                 if (userSnap.exists()) {
                   const userData = userSnap.data();
-                  // Get rank by counting how many players have more points
-                  const higherScoreQ = query(collection(db, "players"), where("totalPoints", ">", userData.totalPoints));
+                  const higherScoreQ = query(collection(db, "players"), where("totalPoints", ">", userData.totalPoints || 0));
                   const countSnap = await getCountFromServer(higherScoreQ);
                   const rank = countSnap.data().count + 1;
                   setCurrentUserRank({ ...userData, rank });
@@ -74,12 +73,21 @@ export default function Leaderboard({ walletAddress }) {
           }
         }, (err) => {
           console.error("Firebase snapshot error:", err);
+          setErrorMsg(err.message || "Unknown error");
           setLoading(false);
         });
 
         return () => unsubscribe();
-      }).catch(console.error);
-    }).catch(console.error);
+      }).catch(err => {
+        console.error(err);
+        setErrorMsg("Failed to load firestore");
+        setLoading(false);
+      });
+    }).catch(err => {
+      console.error(err);
+      setErrorMsg("Failed to load firebase config");
+      setLoading(false);
+    });
   }, [walletAddress]);
 
   const bgStyle = "bg-white text-slate-800";
@@ -90,6 +98,16 @@ export default function Leaderboard({ walletAddress }) {
       <div className={`flex-1 flex flex-col items-center justify-center p-6 ${bgStyle}`}>
         <Loader2 size={32} className="text-[#4F46E5] animate-spin mb-4" />
         <p className="font-semibold">Loading Leaderboard...</p>
+      </div>
+    );
+  }
+
+  if (errorMsg) {
+    return (
+      <div className={`flex-1 flex flex-col items-center justify-center p-6 ${bgStyle}`}>
+        <div className="text-red-500 mb-4 text-4xl">⚠️</div>
+        <p className="font-semibold text-red-600 mb-2">Error Loading Leaderboard</p>
+        <p className="text-sm text-slate-500 text-center max-w-md">{errorMsg}</p>
       </div>
     );
   }
