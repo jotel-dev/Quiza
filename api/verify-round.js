@@ -1,4 +1,4 @@
-import { JsonRpcProvider, Wallet, Contract } from "ethers";
+import { JsonRpcProvider, Wallet, Contract, ZeroAddress } from "ethers";
 import fs from "fs";
 import path from "path";
 
@@ -37,8 +37,14 @@ export async function verifyAndResolve({ roundId, questionIds, submittedAnswers,
   if (!VERIFIER_PRIVATE_KEY) {
     throw new Error("QUIZA_VERIFIER_PRIVATE_KEY is not set in environment");
   }
+  if (roundId === null || roundId === undefined || roundId === "") {
+    throw new Error("Missing roundId");
+  }
   if (questionIds.length !== submittedAnswers.length) {
     throw new Error("questionIds and submittedAnswers length mismatch");
+  }
+  if (!address || !address.startsWith("0x")) {
+    throw new Error("Missing or invalid player address");
   }
 
   const { correctCount, total, won } = scoreRound(questionIds, submittedAnswers);
@@ -46,25 +52,48 @@ export async function verifyAndResolve({ roundId, questionIds, submittedAnswers,
   const verifierWallet = getVerifierWallet();
   const contract = new Contract(QUIZA_CONTRACT_ADDRESS[NETWORK], QUIZA_ABI, verifierWallet);
 
-  let txHash = null;
+  // Confirm the round actually exists on-chain and belongs to this player.
+  let round;
   try {
-    const tx = await contract.resolve(roundId, won);
-    txHash = tx.hash;
-    // We intentionally DO NOT await tx.wait() here to avoid Vercel's 10-second function timeout.
-    // The transaction has been broadcasted and will be mined asynchronously.
+    round = await contract.rounds(roundId);
   } catch (err) {
-    if (err.message && (err.message.includes("Round already resolved") || err.message.includes("execution reverted"))) {
-      console.warn(`Round ${roundId} is already resolved. Skipping on-chain tx.`);
-    } else {
-      throw err;
-    }
+    throw new Error(`Could not read round ${roundId} on-chain: ${err.message}`);
+  }
+  if (!round || round.player === ZeroAddress) {
+    throw new Error("Round does not exist on-chain");
+  }
+  if (round.player.toLowerCase() !== address.toLowerCase()) {
+    throw new Error("Round does not belong to the submitting address");
   }
 
-  // Record stats in Firestore
-  if (address && db) {
+  // Only record stats the first time this round is resolved (prevents replay inflation).
+  const shouldRecord = !round.resolved;
+
+  let txHash = null;
+  if (!round.resolved) {
+    try {
+      const tx = await contract.resolve(roundId, won);
+      txHash = tx.hash;
+      // We intentionally DO NOT await tx.wait() here to avoid Vercel's 10-second function timeout.
+      // The transaction has been broadcasted and will be mined asynchronously.
+    } catch (err) {
+      const msg = err?.message || "";
+      if (msg.includes("Round already resolved")) {
+        console.warn(`Round ${roundId} is already resolved. Skipping on-chain tx.`);
+      } else {
+        // Any other revert (e.g. "Round does not exist") is a real failure — do not hide it.
+        throw err;
+      }
+    }
+  } else {
+    console.warn(`Round ${roundId} already resolved. Skipping on-chain tx.`);
+  }
+
+  // Record stats in Firestore. The backend is the single source of truth for the leaderboard.
+  if (shouldRecord && address && db) {
     const pointsEarned = correctCount * 10;
     const isWin = won ? 1 : 0;
-    
+
     try {
       const playerRef = db.collection("players").doc(address);
       await db.runTransaction(async (t) => {

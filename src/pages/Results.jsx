@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Trophy, RotateCcw, Share2, Check, X, Target, Coins, Loader2 } from "lucide-react";
-import { withdrawWinnings, CUSD_ADDRESS, NETWORK } from "../lib/quizaContract";
+import { withdrawWinnings, getBalance, CUSD_ADDRESS, NETWORK, CELO_NETWORKS, JsonRpcProvider } from "../lib/quizaContract";
 
 function useCountUp(target, durationMs = 900, start = true) {
   const [value, setValue] = useState(0);

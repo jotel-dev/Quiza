@@ -308,7 +308,7 @@ export default function StakeModal({ isOpen, onClose, onStaked, onConnect, walle
               {stakeAmt} {selectedToken.symbol} locked in. Good luck!
             </p>
             <button 
-              onClick={() => onStaked({ token: selectedToken.symbol, roundId, address, signer })}
+              onClick={() => onStaked({ token: selectedToken.symbol, amount: stakeAmt, roundId, address, signer })}
               className="w-full mt-5 bg-[#0A4C86] text-white text-sm font-semibold py-3 rounded-xl shadow-md shadow-blue-200 hover:opacity-90 transition active:scale-95"
             >
               Start Quiz →

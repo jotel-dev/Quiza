@@ -198,6 +198,12 @@ export default function QuizaApp() {
     setScreen("verifying");
     setVerifyError(null);
     setVerifyMessage("Checking answers and confirming on-chain");
+
+    if (!stakeInfo || !stakeInfo.roundId) {
+      setVerifyError("Missing round information. Please stake again to start a new round.");
+      return;
+    }
+
     try {
       const verified = await submitRoundForVerification({
         roundId: stakeInfo.roundId,
@@ -206,15 +212,14 @@ export default function QuizaApp() {
         address: walletAddress,
       });
 
-      const stakeAmt = stakeInfo.token === "cUSD" ? 0.001 : 0.01;
+      const stakeAmt = stakeInfo.amount ?? (stakeInfo.token === "cUSD" ? 0.001 : 0.01);
       const payout = verified.won ? (stakeAmt * WIN_MULTIPLIER).toFixed(4) : null;
       setResult({ correct, wrong, total, won: verified.won, payout, txHash: verified.txHash });
 
-      let computedStreak = 1;
       setStats((s) => {
         const today = new Date();
         const todayStr = today.toDateString();
-        
+
         let newStreak = s.streak;
         if (s.lastPlayedDate) {
           const lastDate = new Date(s.lastPlayedDate);
@@ -228,8 +233,6 @@ export default function QuizaApp() {
         } else {
           newStreak = 1;
         }
-
-        computedStreak = newStreak;
 
         const currentWeek = getWeekIdentifier();
         let newWeeklyQuizzes = s.weeklyQuizzes;
@@ -250,14 +253,6 @@ export default function QuizaApp() {
           weekIdentifier: currentWeek
         };
       });
-
-      setVerifyMessage("Saving score to leaderboard...");
-      try {
-        const { submitScoreToLeaderboard } = await import("./lib/firebase.js");
-        await submitScoreToLeaderboard(walletAddress, correct, total, computedStreak);
-      } catch (err) {
-        console.error("Failed to submit score to leaderboard:", err);
-      }
 
       setRecentGames((prev) => {
         const game = {
