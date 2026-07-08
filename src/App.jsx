@@ -153,7 +153,7 @@ export default function QuizaApp() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          roundId: info.roundId,
+          roundId: info.roundId.toString(),
           type: isDailyChallenge ? "daily" : "standard",
         }),
       });

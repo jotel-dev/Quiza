@@ -10,7 +10,6 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
   const [selected, setSelected] = useState(null);
   const [status, setStatus] = useState("active");
   const [timeLeft, setTimeLeft] = useState(TIME_PER_QUESTION);
-  const [score, setScore] = useState(0);
   const [fadeKey, setFadeKey] = useState(0);
   const submittedAnswers = useRef([]);
   const hasAdvanced = useRef(false);
@@ -18,8 +17,6 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
 
   const hasQuestions = roundQuestions && roundQuestions.length > 0;
   const q = hasQuestions ? roundQuestions[current] : null;
-  // Answers are NOT sent to the client in production, so we can't reveal correctness live.
-  const answersKnown = typeof q?.answer === "number";
 
   currentRef.current = current;
 
@@ -47,7 +44,7 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
   useEffect(() => {
     if (status !== "active") return;
     if (timeLeft <= 0) {
-      setStatus("answered");
+      setStatus("selected");
       setSelected(-1);
       const t = setTimeout(() => goNext(-1), 1000);
       return () => clearTimeout(t);
@@ -59,16 +56,15 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
   const handleAnswer = (idx) => {
     if (status !== "active" || hasAdvanced.current || !q) return;
     setSelected(idx);
-    setStatus("answered");
-    setScore((s) => s + Math.max(0, timeLeft) * 5);
-    setTimeout(() => goNext(idx), 1000);
+    setStatus("selected");
+    setTimeout(() => goNext(idx), 600);
   };
 
   const handleSkip = () => {
     if (status !== "active" || hasAdvanced.current || !q) return;
-    setStatus("answered");
+    setStatus("selected");
     setSelected(-1);
-    setTimeout(() => goNext(-1), 700);
+    setTimeout(() => goNext(-1), 600);
   };
 
   const timerPct = (timeLeft / TIME_PER_QUESTION) * 100;
@@ -132,18 +128,13 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {q.options.map((opt, idx) => {
               const isSelected = selected === idx;
-              const isCorrectAnswer = answersKnown && idx === q.answer;
               let stateClasses = "bg-white border-slate-150 text-slate-700 hover:border-[#0A4C86]/40 hover:bg-blue-50/40";
-              if (status !== "active" && answersKnown) {
-                if (isCorrectAnswer) {
-                  stateClasses = "bg-emerald-50 border-[#10B981] text-emerald-700 shadow-[0_0_0_3px_rgba(16,185,129,0.15)]";
-                } else if (isSelected && !isCorrectAnswer) {
-                  stateClasses = "bg-red-50 border-[#EF4444] text-red-600";
+              if (status !== "active") {
+                if (isSelected) {
+                  stateClasses = "bg-indigo-50 border-[#4F46E5] text-[#4F46E5] shadow-[0_0_0_3px_rgba(79,70,229,0.15)]";
                 } else {
                   stateClasses = "bg-white border-slate-100 text-slate-400";
                 }
-              } else if (status !== "active" && isSelected) {
-                stateClasses = "bg-blue-50 border-[#0A4C86]/50 text-slate-700";
               }
               return (
                 <button
@@ -153,12 +144,6 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
                   className={`relative flex items-center justify-between gap-2 border rounded-2xl px-4 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-95 ${stateClasses}`}
                 >
                   <span>{opt}</span>
-                  {status !== "active" && answersKnown && isCorrectAnswer && (
-                    <Check size={16} className="text-[#10B981] animate-check shrink-0" />
-                  )}
-                  {status !== "active" && answersKnown && isSelected && !isCorrectAnswer && (
-                    <X size={16} className="text-[#EF4444] shrink-0" />
-                  )}
                 </button>
               );
             })}
@@ -166,8 +151,8 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
 
           <div className="flex items-center justify-between mt-6">
             <div className="flex items-center gap-1.5 text-xs text-slate-400">
-              <Zap size={12} className="text-[#F26722]" />
-              Score: <span className="font-bold text-slate-600">{score}</span>
+              <Zap size={12} className="text-slate-300" />
+              Score: <span className="font-bold text-slate-400">Hidden</span>
             </div>
             <button
               onClick={handleSkip}
