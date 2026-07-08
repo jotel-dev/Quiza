@@ -4,33 +4,6 @@ import { Clock, X, Check, SkipForward, Zap } from "lucide-react";
 
 const TIME_PER_QUESTION = 15;
 
-function ConfettiBurst() {
-  const pieces = Array.from({ length: 16 });
-  const colors = ["#0A4C86", "#F26722", "#10B981", "#EF4444"];
-  return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      {pieces.map((_, i) => {
-        const angle = (i / pieces.length) * 360;
-        const distance = 60 + Math.random() * 40;
-        const dx = Math.cos((angle * Math.PI) / 180) * distance;
-        const dy = Math.sin((angle * Math.PI) / 180) * distance;
-        return (
-          <span
-            key={i}
-            className="absolute left-1/2 top-1/2 w-1.5 h-1.5 rounded-sm animate-confetti"
-            style={{
-              backgroundColor: colors[i % colors.length],
-              "--dx": `${dx}px`,
-              "--dy": `${dy}px`,
-              animationDelay: `${Math.random() * 0.1}s`,
-            }}
-          />
-        );
-      })}
-    </div>
-  );
-}
-
 export default function Quiz({ roundQuestions, onRoundComplete }) {
   const navigate = useNavigate();
   const [current, setCurrent] = useState(0);
@@ -38,50 +11,43 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
   const [status, setStatus] = useState("active");
   const [timeLeft, setTimeLeft] = useState(TIME_PER_QUESTION);
   const [score, setScore] = useState(0);
-  const [correctCount, setCorrectCount] = useState(0);
   const [fadeKey, setFadeKey] = useState(0);
   const submittedAnswers = useRef([]);
   const hasAdvanced = useRef(false);
-  const correctCountRef = useRef(0);
   const currentRef = useRef(0);
 
   const hasQuestions = roundQuestions && roundQuestions.length > 0;
   const q = hasQuestions ? roundQuestions[current] : null;
+  // Answers are NOT sent to the client in production, so we can't reveal correctness live.
+  const answersKnown = typeof q?.answer === "number";
 
   currentRef.current = current;
-  correctCountRef.current = correctCount;
 
   const goNext = useCallback((chosenIdx) => {
     if (hasAdvanced.current) return;
     hasAdvanced.current = true;
 
-    const wasCorrect = chosenIdx === q.answer;
     submittedAnswers.current.push(chosenIdx);
-    const newCorrect = wasCorrect ? correctCountRef.current + 1 : correctCountRef.current;
 
     if (currentRef.current + 1 >= roundQuestions.length) {
       onRoundComplete({
-        correct: newCorrect,
-        wrong: roundQuestions.length - newCorrect,
-        total: roundQuestions.length,
         questionIds: roundQuestions.map((rq) => rq.id),
         submittedAnswers: submittedAnswers.current,
       });
       return;
     }
-    setCorrectCount(newCorrect);
     setCurrent((c) => c + 1);
     setSelected(null);
     setStatus("active");
     setTimeLeft(TIME_PER_QUESTION);
     setFadeKey((k) => k + 1);
     hasAdvanced.current = false;
-  }, [q, roundQuestions, onRoundComplete]);
+  }, [roundQuestions, onRoundComplete]);
 
   useEffect(() => {
     if (status !== "active") return;
     if (timeLeft <= 0) {
-      setStatus("wrong");
+      setStatus("answered");
       setSelected(-1);
       const t = setTimeout(() => goNext(-1), 1000);
       return () => clearTimeout(t);
@@ -93,18 +59,14 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
   const handleAnswer = (idx) => {
     if (status !== "active" || hasAdvanced.current || !q) return;
     setSelected(idx);
-    const correct = idx === q.answer;
-    setStatus(correct ? "correct" : "wrong");
-    if (correct) {
-      setScore((s) => s + 100 + (timeLeft * 10));
-      setCorrectCount((c) => c + 1);
-    }
-    setTimeout(() => goNext(idx), 1200);
+    setStatus("answered");
+    setScore((s) => s + Math.max(0, timeLeft) * 5);
+    setTimeout(() => goNext(idx), 1000);
   };
 
   const handleSkip = () => {
     if (status !== "active" || hasAdvanced.current || !q) return;
-    setStatus("wrong");
+    setStatus("answered");
     setSelected(-1);
     setTimeout(() => goNext(-1), 700);
   };
@@ -135,8 +97,6 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
       <style>{`
         @keyframes confetti-fly { 0% { transform: translate(-50%, -50%) scale(1); opacity: 1; } 100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0); opacity: 0; } }
         .animate-confetti { animation: confetti-fly 0.7s ease-out forwards; }
-        @keyframes shake-x { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-6px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(4px); } }
-        .animate-shake { animation: shake-x 0.4s ease-in-out; }
         @keyframes fade-in-up { 0% { opacity: 0; transform: translateY(8px); } 100% { opacity: 1; transform: translateY(0); } }
         .animate-fade-in { animation: fade-in-up 0.35s ease-out; }
         @keyframes check-pop { 0% { transform: scale(0); opacity: 0; } 60% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
@@ -147,7 +107,7 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
         <div className="flex items-center justify-between mb-4">
           <span
             className="text-xs font-bold px-3 py-1 rounded-full"
-            style={{ color: q.color, backgroundColor: `${q.color}18` }}
+            style={{ color: q.color || "#4F46E5", backgroundColor: `${(q.color || "#4F46E5")}18` }}
           >
             {q.category}
           </span>
@@ -167,15 +127,14 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
           <div className="h-full rounded-full transition-all duration-1000 ease-linear" style={{ width: `${timerPct}%`, backgroundColor: timerColor }} />
         </div>
 
-        <div key={fadeKey} className={`relative rounded-[22px] border border-white/60 shadow-[0_8px_30px_rgba(79,70,229,0.08)] backdrop-blur-xl bg-white/70 p-6 sm:p-8 animate-fade-in ${status === "wrong" ? "animate-shake" : ""}`}>
-          {status === "correct" && <ConfettiBurst />}
+        <div key={fadeKey} className="relative rounded-[22px] border border-white/60 shadow-[0_8px_30px_rgba(79,70,229,0.08)] backdrop-blur-xl bg-white/70 p-6 sm:p-8 animate-fade-in">
           <h2 className="text-lg sm:text-xl font-bold text-slate-800 leading-snug mb-6 text-center">{q.question}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {q.options.map((opt, idx) => {
               const isSelected = selected === idx;
-              const isCorrectAnswer = idx === q.answer;
+              const isCorrectAnswer = answersKnown && idx === q.answer;
               let stateClasses = "bg-white border-slate-150 text-slate-700 hover:border-[#0A4C86]/40 hover:bg-blue-50/40";
-              if (status !== "active") {
+              if (status !== "active" && answersKnown) {
                 if (isCorrectAnswer) {
                   stateClasses = "bg-emerald-50 border-[#10B981] text-emerald-700 shadow-[0_0_0_3px_rgba(16,185,129,0.15)]";
                 } else if (isSelected && !isCorrectAnswer) {
@@ -183,6 +142,8 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
                 } else {
                   stateClasses = "bg-white border-slate-100 text-slate-400";
                 }
+              } else if (status !== "active" && isSelected) {
+                stateClasses = "bg-blue-50 border-[#0A4C86]/50 text-slate-700";
               }
               return (
                 <button
@@ -192,10 +153,10 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
                   className={`relative flex items-center justify-between gap-2 border rounded-2xl px-4 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-95 ${stateClasses}`}
                 >
                   <span>{opt}</span>
-                  {status !== "active" && isCorrectAnswer && (
+                  {status !== "active" && answersKnown && isCorrectAnswer && (
                     <Check size={16} className="text-[#10B981] animate-check shrink-0" />
                   )}
-                  {status !== "active" && isSelected && !isCorrectAnswer && (
+                  {status !== "active" && answersKnown && isSelected && !isCorrectAnswer && (
                     <X size={16} className="text-[#EF4444] shrink-0" />
                   )}
                 </button>

@@ -2,7 +2,11 @@ import { db } from "./firebaseAdmin.js";
 
 export default async function handler(req, res) {
   if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
-  if (!db) return res.status(500).json({ error: "Firebase Admin not initialized" });
+  if (!db) {
+    // Firebase not configured — degrade gracefully instead of 500.
+    console.warn("Firebase Admin not initialized; returning empty leaderboard.");
+    return res.status(200).json({ players: [] });
+  }
 
   try {
     const snapshot = await db.collection("players")

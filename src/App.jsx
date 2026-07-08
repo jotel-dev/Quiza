@@ -10,7 +10,6 @@ const nav = [
   { icon: User, label: "Profile" },
 ];
 
-import questionBank from "./data/questions.json";
 import {
   connectWallet,
   ensureNetwork,
@@ -42,42 +41,6 @@ const getWeekIdentifier = () => {
 
 
 const WIN_MULTIPLIER = 1.5;
-const QUESTIONS_PER_ROUND = 10;
-
-function pickRoundQuestions() {
-  const arr = [...questionBank.questions];
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr.slice(0, QUESTIONS_PER_ROUND);
-}
-
-function pickDailyChallengeQuestions() {
-  const mathHard = questionBank.questions.filter(q => q.category === "Math" && q.difficulty === "hard");
-  const web3Hard = questionBank.questions.filter(q => q.category === "Web3" && q.difficulty === "hard");
-
-  for (let i = mathHard.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [mathHard[i], mathHard[j]] = [mathHard[j], mathHard[i]];
-  }
-  const selectedMath = mathHard.slice(0, 3);
-
-  for (let i = web3Hard.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [web3Hard[i], web3Hard[j]] = [web3Hard[j], web3Hard[i]];
-  }
-  const selectedWeb3 = web3Hard.slice(0, 2);
-
-  const combined = [...selectedMath, ...selectedWeb3];
-  
-  for (let i = combined.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [combined[i], combined[j]] = [combined[j], combined[i]];
-  }
-  
-  return combined;
-}
 
 function loadPersistedState() {
   try {
@@ -180,21 +143,34 @@ export default function QuizaApp() {
     }
   };
 
-  const handleStaked = (info) => {
+  const handleStaked = async (info) => {
     setStakeInfo(info);
     setSigner(info.signer);
-    if (isDailyChallenge) {
-      setRoundQuestions(pickDailyChallengeQuestions());
-    } else {
-      setRoundQuestions(pickRoundQuestions());
+    try {
+      // Questions are selected server-side and returned WITHOUT answers,
+      // so the answer key never reaches the client.
+      const res = await fetch("/api/round-questions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          roundId: info.roundId,
+          type: isDailyChallenge ? "daily" : "standard",
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to load questions");
+      const data = await res.json();
+      setRoundQuestions(data.questions || []);
+      setScreen("play");
+      navigate("/quiz");
+    } catch (err) {
+      console.error("Failed to load round questions:", err);
+      setVerifyError("Could not load questions for this round. Please stake again.");
     }
-    setScreen("play");
-    navigate("/quiz");
   };
 
   const [verifyMessage, setVerifyMessage] = useState("Checking answers and confirming on-chain");
 
-  const handleRoundComplete = async ({ correct, wrong, total, questionIds, submittedAnswers }) => {
+  const handleRoundComplete = async ({ questionIds, submittedAnswers }) => {
     setScreen("verifying");
     setVerifyError(null);
     setVerifyMessage("Checking answers and confirming on-chain");
@@ -205,6 +181,7 @@ export default function QuizaApp() {
     }
 
     try {
+      // Scoring and win determination happen entirely server-side.
       const verified = await submitRoundForVerification({
         roundId: stakeInfo.roundId,
         questionIds,
@@ -214,7 +191,17 @@ export default function QuizaApp() {
 
       const stakeAmt = stakeInfo.amount ?? (stakeInfo.token === "cUSD" ? 0.001 : 0.01);
       const payout = verified.won ? (stakeAmt * WIN_MULTIPLIER).toFixed(4) : null;
-      setResult({ correct, wrong, total, won: verified.won, payout, txHash: verified.txHash });
+      const correct = verified.correctCount;
+      const total = verified.total;
+      setResult({
+        correct,
+        wrong: total - correct,
+        total,
+        won: verified.won,
+        payout,
+        txHash: verified.txHash,
+        correctAnswers: verified.correctAnswers,
+      });
 
       setStats((s) => {
         const today = new Date();

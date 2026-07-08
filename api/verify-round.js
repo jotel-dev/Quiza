@@ -1,4 +1,4 @@
-import { JsonRpcProvider, Wallet, Contract, ZeroAddress } from "ethers";
+import { JsonRpcProvider, Wallet, Contract, ZeroAddress, parseEther, formatEther } from "ethers";
 import fs from "fs";
 import path from "path";
 
@@ -21,16 +21,18 @@ export function scoreRound(questionIds, submittedAnswers) {
   const questionBank = JSON.parse(fs.readFileSync(path.join(process.cwd(), "src/data/questions.json"), "utf8"));
   const byId = Object.fromEntries(questionBank.questions.map((q) => [q.id, q]));
   let correctCount = 0;
+  const correctAnswers = [];
 
   questionIds.forEach((id, i) => {
     const question = byId[id];
     if (!question) throw new Error(`Unknown question id: ${id}`);
+    correctAnswers.push(question.answer);
     if (submittedAnswers[i] === question.answer) correctCount += 1;
   });
 
   const total = questionIds.length;
   const won = correctCount / total >= WIN_THRESHOLD;
-  return { correctCount, total, won };
+  return { correctCount, total, won, correctAnswers };
 }
 
 export async function verifyAndResolve({ roundId, questionIds, submittedAnswers, address }) {
@@ -47,10 +49,20 @@ export async function verifyAndResolve({ roundId, questionIds, submittedAnswers,
     throw new Error("Missing or invalid player address");
   }
 
-  const { correctCount, total, won } = scoreRound(questionIds, submittedAnswers);
+  const { correctCount, total, won, correctAnswers } = scoreRound(questionIds, submittedAnswers);
 
   const verifierWallet = getVerifierWallet();
   const contract = new Contract(QUIZA_CONTRACT_ADDRESS[NETWORK], QUIZA_ABI, verifierWallet);
+
+  // Warn the owner if the reward pool is running low (payouts will start failing).
+  try {
+    const poolBal = await verifierWallet.provider.getBalance(QUIZA_CONTRACT_ADDRESS[NETWORK]);
+    if (poolBal < parseEther("0.1")) {
+      console.warn(`[Quiza] Reward pool low: ${formatEther(poolBal)} CELO remaining. Top up via fundPoolCelo().`);
+    }
+  } catch (e) {
+    console.warn("Could not read reward pool balance:", e.message);
+  }
 
   // Confirm the round actually exists on-chain and belongs to this player.
   let round;
@@ -127,7 +139,7 @@ export async function verifyAndResolve({ roundId, questionIds, submittedAnswers,
     }
   }
 
-  return { won, correctCount, total, txHash };
+  return { won, correctCount, total, txHash, correctAnswers };
 }
 
 export default async function handler(req, res) {
