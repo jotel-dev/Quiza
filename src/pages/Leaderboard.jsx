@@ -16,78 +16,58 @@ export default function Leaderboard({ walletAddress }) {
   const [errorMsg, setErrorMsg] = useState(null);
 
   useEffect(() => {
-    import("../lib/firebase.js").then(({ db }) => {
-      import("firebase/firestore").then(({ collection, query, orderBy, limit, onSnapshot, getDoc, doc, getCountFromServer, where }) => {
-        const q = query(
-          collection(db, "players"),
-          orderBy("totalPoints", "desc"),
-          limit(50)
-        );
-
-        const unsubscribe = onSnapshot(q, async (snapshot) => {
-          let docs = [];
-          snapshot.forEach((d) => {
-            const data = d.data();
-            data.accuracy = data.totalQuestions > 0 ? (data.correctAnswers * 100) / data.totalQuestions : 0;
-            docs.push(data);
-          });
-
-          // Sort in memory: Points DESC, Accuracy DESC, LastUpdated ASC
-          docs.sort((a, b) => {
-            if (b.totalPoints !== a.totalPoints) return (b.totalPoints || 0) - (a.totalPoints || 0);
-            if (b.accuracy !== a.accuracy) return (b.accuracy || 0) - (a.accuracy || 0);
-            const aTime = a.lastUpdated?.toMillis?.() || 0;
-            const bTime = b.lastUpdated?.toMillis?.() || 0;
-            return aTime - bTime;
-          });
-
-          const top20 = docs.slice(0, 20);
-          setPlayers(top20);
+    let isMounted = true;
+    setLoading(true);
+    
+    fetch('/api/leaderboard')
+      .then(res => res.json())
+      .then(data => {
+        if (!isMounted) return;
+        if (data.error) {
+          setErrorMsg(data.error);
           setLoading(false);
-          setErrorMsg(null);
+          return;
+        }
+        
+        let docs = data.players || [];
+        docs.forEach(d => {
+          d.accuracy = d.totalQuestions > 0 ? (d.correctAnswers * 100) / d.totalQuestions : 0;
+        });
 
-          if (walletAddress) {
-            const userIndex = docs.findIndex((p) => p.address === walletAddress);
-            if (userIndex !== -1) {
-              setCurrentUserRank({ ...docs[userIndex], rank: userIndex + 1 });
-            } else {
-              try {
-                const userRef = doc(db, "players", walletAddress);
-                const userSnap = await getDoc(userRef);
-                if (userSnap.exists()) {
-                  const userData = userSnap.data();
-                  const higherScoreQ = query(collection(db, "players"), where("totalPoints", ">", userData.totalPoints || 0));
-                  const countSnap = await getCountFromServer(higherScoreQ);
-                  const rank = countSnap.data().count + 1;
-                  setCurrentUserRank({ ...userData, rank });
-                } else {
-                  setCurrentUserRank(null);
-                }
-              } catch (err) {
-                console.error("Failed to fetch user rank:", err);
-                setCurrentUserRank(null);
-              }
-            }
+        // Sort in memory: Points DESC, Accuracy DESC, LastUpdated ASC
+        docs.sort((a, b) => {
+          if (b.totalPoints !== a.totalPoints) return (b.totalPoints || 0) - (a.totalPoints || 0);
+          if (b.accuracy !== a.accuracy) return (b.accuracy || 0) - (a.accuracy || 0);
+          const aTime = a.lastUpdated || 0;
+          const bTime = b.lastUpdated || 0;
+          return aTime - bTime;
+        });
+
+        const top20 = docs.slice(0, 20);
+        setPlayers(top20);
+        setErrorMsg(null);
+
+        if (walletAddress) {
+          const userIndex = docs.findIndex((p) => p.address === walletAddress);
+          if (userIndex !== -1) {
+            setCurrentUserRank({ ...docs[userIndex], rank: userIndex + 1 });
           } else {
             setCurrentUserRank(null);
           }
-        }, (err) => {
-          console.error("Firebase snapshot error:", err);
-          setErrorMsg(err.message || "Unknown error");
-          setLoading(false);
-        });
-
-        return () => unsubscribe();
-      }).catch(err => {
-        console.error(err);
-        setErrorMsg("Failed to load firestore");
+        } else {
+          setCurrentUserRank(null);
+        }
         setLoading(false);
+      })
+      .catch(err => {
+        console.error("Leaderboard fetch error:", err);
+        if (isMounted) {
+          setErrorMsg(err.message || "Failed to fetch leaderboard");
+          setLoading(false);
+        }
       });
-    }).catch(err => {
-      console.error(err);
-      setErrorMsg("Failed to load firebase config");
-      setLoading(false);
-    });
+
+    return () => { isMounted = false; };
   }, [walletAddress]);
 
   const bgStyle = "bg-white text-slate-800";
