@@ -129,7 +129,12 @@ export default function Leaderboard({ walletAddress }) {
           <div className={`text-center py-16 rounded-3xl border ${cardStyle}`}>
             <span className="text-5xl mb-4 block">🏆</span>
             <h3 className="text-xl font-bold mb-2">No leaderboard data yet.</h3>
-            <p className="text-slate-400 text-sm">Be the first player to complete a quiz and claim the #1 spot!</p>
+            <p className="text-slate-400 text-sm mb-4">Be the first player to complete a quiz and claim the #1 spot!</p>
+            <div className="bg-slate-100 text-xs text-slate-500 p-3 rounded-lg mx-auto max-w-xs text-left">
+              <p><strong>Debug Info:</strong></p>
+              <p>Project ID: {import.meta.env.VITE_FIREBASE_PROJECT_ID || 'undefined'}</p>
+              <p>Error: {errorMsg || 'none'}</p>
+            </div>
           </div>
         ) : (
           <div className="space-y-3">
@@ -144,20 +149,19 @@ export default function Leaderboard({ walletAddress }) {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ duration: 0.3 }}
-                    className={`flex items-center p-4 sm:p-5 rounded-2xl border transition-all ${
-                      isCurrentUser 
+                    className={`flex items-center p-4 sm:p-5 rounded-2xl border transition-all ${isCurrentUser
                         ? "bg-indigo-50 border-[#4F46E5] shadow-[0_0_0_2px_rgba(79,70,229,0.1)]"
                         : cardStyle
-                    }`}
+                      }`}
                   >
                     <div className="w-10 text-center font-bold text-slate-400 mr-2 sm:mr-4 shrink-0">
                       {getMedalIcon(index) || `#${index + 1}`}
                     </div>
-                    
+
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <h3 className="font-bold truncate text-base sm:text-lg">
-                          {player.username || player.address.slice(0,6) + "..."}
+                          {player.username || player.address.slice(0, 6) + "..."}
                         </h3>
                         {isCurrentUser && (
                           <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#4F46E5] text-white">
@@ -166,8 +170,8 @@ export default function Leaderboard({ walletAddress }) {
                         )}
                       </div>
                       <div className="flex items-center gap-4 text-xs font-medium text-slate-400 mt-1">
-                        <span className="flex items-center gap-1"><Target size={12}/> {Math.round(player.accuracy || 0)}%</span>
-                        <span className="flex items-center gap-1"><Flame size={12} className={player.streak > 2 ? "text-orange-500" : ""}/> {player.streak} streak</span>
+                        <span className="flex items-center gap-1"><Target size={12} /> {Math.round(player.accuracy || 0)}%</span>
+                        <span className="flex items-center gap-1"><Flame size={12} className={player.streak > 2 ? "text-orange-500" : ""} /> {player.streak} streak</span>
                       </div>
                     </div>
 
@@ -198,7 +202,7 @@ export default function Leaderboard({ walletAddress }) {
             <p className="text-xs text-slate-400">Keep playing to climb higher!</p>
           </div>
           <div className="text-right">
-             <div className="font-bold text-[#4F46E5]">{currentUserRank.totalPoints} pts</div>
+            <div className="font-bold text-[#4F46E5]">{currentUserRank.totalPoints} pts</div>
           </div>
         </div>
       )}
