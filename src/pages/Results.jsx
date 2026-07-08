@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Trophy, RotateCcw, Share2, Check, X, Target, Coins, Loader2 } from "lucide-react";
-import { withdrawWinnings, getBalance, CUSD_ADDRESS, NETWORK, CELO_NETWORKS, JsonRpcProvider } from "../lib/quizaContract";
+import { JsonRpcProvider } from "ethers";
+import { withdrawWinnings, getBalance, CUSD_ADDRESS, NETWORK, CELO_NETWORKS } from "../lib/quizaContract";
 
 function useCountUp(target, durationMs = 900, start = true) {
   const [value, setValue] = useState(0);
@@ -46,6 +47,7 @@ export default function Results({ result, stakeInfo, signer, onPlayAgain }) {
   const [showTrophy, setShowTrophy] = useState(false);
   const [withdrawState, setWithdrawState] = useState("idle");
   const [withdrawError, setWithdrawError] = useState(null);
+  const [payoutReady, setPayoutReady] = useState(!won);
 
   const accuracy = Math.round((result.correct / result.total) * 100);
   const won = result.won;
@@ -57,6 +59,44 @@ export default function Results({ result, stakeInfo, signer, onPlayAgain }) {
     const t = setTimeout(() => setShowTrophy(true), 150);
     return () => clearTimeout(t);
   }, []);
+
+  // For winning rounds, confirm the on-chain payout has settled before enabling withdrawal.
+  // resolve() is broadcast but not awaited, so the balance may take a moment to reflect.
+  useEffect(() => {
+    if (!won || !stakeInfo || !signer) return;
+
+    let cancelled = false;
+    let attempts = 0;
+    const MAX_ATTEMPTS = 20;
+
+    const tokenAddress =
+      stakeInfo.token === "CELO" ? "0x0000000000000000000000000000000000000000" : CUSD_ADDRESS[NETWORK];
+    const provider = new JsonRpcProvider(CELO_NETWORKS[NETWORK].rpcUrls[0]);
+
+    const check = async () => {
+      try {
+        const balance = await getBalance(provider, await signer.getAddress(), tokenAddress, NETWORK);
+        if (!cancelled && balance > 0n) {
+          setPayoutReady(true);
+          return;
+        }
+      } catch {
+        // ignore transient RPC errors and keep polling
+      }
+      attempts += 1;
+      if (!cancelled && attempts < MAX_ATTEMPTS) {
+        setTimeout(check, 3000);
+      } else if (!cancelled) {
+        // Give up waiting; let the user try withdrawing anyway (clear error if it fails).
+        setPayoutReady(true);
+      }
+    };
+
+    check();
+    return () => {
+      cancelled = true;
+    };
+  }, [won, stakeInfo, signer]);
 
   const handleWithdraw = async () => {
     setWithdrawError(null);
@@ -157,11 +197,13 @@ export default function Results({ result, stakeInfo, signer, onPlayAgain }) {
               {withdrawState !== "done" ? (
                 <button
                   onClick={handleWithdraw}
-                  disabled={withdrawState === "withdrawing"}
+                  disabled={withdrawState === "withdrawing" || !payoutReady}
                   className="w-full flex items-center justify-center gap-2 bg-[#10B981] text-white text-sm font-semibold py-3 rounded-xl shadow-md shadow-emerald-200 hover:opacity-90 transition active:scale-95 disabled:opacity-70"
                 >
                   {withdrawState === "withdrawing" ? (
                     <><Loader2 size={15} className="animate-spin" />Withdrawing...</>
+                  ) : !payoutReady ? (
+                    <><Loader2 size={15} className="animate-spin" />Confirming payout...</>
                   ) : (
                     <><Coins size={15} />Withdraw {payout} {stakeInfo.token}</>
                   )}
