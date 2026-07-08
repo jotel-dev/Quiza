@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { Loader2, Home, Grid3x3, Timer, Trophy, Gift, Award, Wallet, User, Settings } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const nav = [
   { icon: Home, label: "Home" },
@@ -341,16 +342,18 @@ export default function QuizaApp() {
         </div>
       )}
 
-      <main className="flex-1 relative pb-20 lg:pb-0">
-        <Routes>
-          <Route path="/" element={<WelcomeScreen />} />
-          <Route path="/home" element={<HomeScreen onStartQuiz={handleStartQuiz} onStartDailyChallenge={handleStartDailyChallenge} stats={stats} recentGames={recentGames} walletAddress={walletAddress} onConnectWallet={handleConnectWallet} onDisconnectWallet={() => { setWalletAddress(null); setSigner(null); }} />} />
-          <Route path="/quiz" element={<QuizScreen roundQuestions={roundQuestions} onRoundComplete={handleRoundComplete} />} />
-          <Route path="/results" element={<ResultsScreen result={result} stakeInfo={stakeInfo} signer={signer} onPlayAgain={handlePlayAgain} />} />
-          <Route path="/leaderboard" element={<LeaderboardScreen walletAddress={walletAddress} />} />
-          <Route path="/categories" element={<CategoriesScreen />} />
-          <Route path="/profile" element={<ProfileScreen stats={stats} recentGames={recentGames} walletAddress={walletAddress} onConnectWallet={handleConnectWallet} onDisconnectWallet={() => { setWalletAddress(null); setSigner(null); }} />} />
-        </Routes>
+      <main className="flex-1 relative pb-20 lg:pb-0 overflow-x-hidden">
+        <AnimatePresence mode="wait">
+          <Routes location={location} key={location.pathname}>
+            <Route path="/" element={<PageTransition pathname={location.pathname}><WelcomeScreen /></PageTransition>} />
+            <Route path="/home" element={<PageTransition pathname={location.pathname}><HomeScreen onStartQuiz={handleStartQuiz} onStartDailyChallenge={handleStartDailyChallenge} stats={stats} recentGames={recentGames} walletAddress={walletAddress} onConnectWallet={handleConnectWallet} onDisconnectWallet={() => { setWalletAddress(null); setSigner(null); }} /></PageTransition>} />
+            <Route path="/quiz" element={<PageTransition pathname={location.pathname}><QuizScreen roundQuestions={roundQuestions} onRoundComplete={handleRoundComplete} /></PageTransition>} />
+            <Route path="/results" element={<PageTransition pathname={location.pathname}><ResultsScreen result={result} stakeInfo={stakeInfo} signer={signer} onPlayAgain={handlePlayAgain} /></PageTransition>} />
+            <Route path="/leaderboard" element={<PageTransition pathname={location.pathname}><LeaderboardScreen walletAddress={walletAddress} /></PageTransition>} />
+            <Route path="/categories" element={<PageTransition pathname={location.pathname}><CategoriesScreen /></PageTransition>} />
+            <Route path="/profile" element={<PageTransition pathname={location.pathname}><ProfileScreen stats={stats} recentGames={recentGames} walletAddress={walletAddress} onConnectWallet={handleConnectWallet} onDisconnectWallet={() => { setWalletAddress(null); setSigner(null); }} /></PageTransition>} />
+          </Routes>
+        </AnimatePresence>
 
         {screen === "verifying" && (
           <div className="flex-1 flex items-center justify-center p-4">
@@ -368,7 +371,16 @@ export default function QuizaApp() {
                 </>
               ) : (
                 <>
-                  <Loader2 size={32} className="mx-auto text-[#4F46E5] animate-spin" />
+                  <div className="flex justify-center items-center gap-2 mb-4">
+                    {[0, 1, 2].map((i) => (
+                      <motion.div
+                        key={i}
+                        animate={{ opacity: [0.3, 1, 0.3], scale: [0.8, 1.2, 0.8] }}
+                        transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2, ease: "easeInOut" }}
+                        className="w-3 h-3 rounded-full bg-[#4F46E5]"
+                      />
+                    ))}
+                  </div>
                   <p className="text-base font-bold text-slate-800 mt-4">Verifying your round...</p>
                   <p className="text-sm text-slate-400 mt-1">{verifyMessage}</p>
                 </>
@@ -390,3 +402,20 @@ export default function QuizaApp() {
   );
 }
 
+const customEase = [0.22, 1, 0.36, 1];
+
+function PageTransition({ children, pathname }) {
+  const isBackToHome = pathname === "/home" || pathname === "/";
+  return (
+    <motion.div
+      key={pathname}
+      initial={isBackToHome ? { opacity: 0 } : { opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={isBackToHome ? { opacity: 0 } : { opacity: 0, x: -20 }}
+      transition={{ duration: 0.4, ease: customEase }}
+      className="w-full h-full"
+    >
+      {children}
+    </motion.div>
+  );
+}
