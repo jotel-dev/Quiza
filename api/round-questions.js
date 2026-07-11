@@ -40,12 +40,17 @@ function shuffle(arr, rng) {
   return a;
 }
 
-function publicView(q) {
+function publicView(q, rng) {
   const { answer, ...rest } = q; // strip the answer
-  return { ...rest, color: CATEGORY_COLORS[q.category] || "#4F46E5" };
+  // Generate 50/50 hint locally (correct + 1 random wrong) without leaking it fully
+  const wrongIndices = [0, 1, 2, 3].filter(i => i !== answer);
+  const randomWrong = wrongIndices[Math.floor(rng() * wrongIndices.length)];
+  const fiftyFifty = shuffle([answer, randomWrong], rng);
+  
+  return { ...rest, color: CATEGORY_COLORS[q.category] || "#4F46E5", fiftyFifty };
 }
 
-export function selectQuestions(roundId, type = "standard") {
+export function selectQuestions(roundId, type = "standard", category = "Mixed", difficulty = "Mixed") {
   const bank = JSON.parse(fs.readFileSync(QUESTION_BANK_PATH, "utf8"));
   const rng = mulberry32(seedFrom(roundId));
 
@@ -55,18 +60,29 @@ export function selectQuestions(roundId, type = "standard") {
     const web3Hard = bank.questions.filter((q) => q.category === "Web3" && q.difficulty === "hard");
     selected = [...shuffle(mathHard, rng).slice(0, 3), ...shuffle(web3Hard, rng).slice(0, 2)];
   } else {
-    selected = shuffle(bank.questions, rng).slice(0, 10);
+    let pool = bank.questions;
+    if (category && category !== "Mixed") pool = pool.filter(q => q.category === category);
+    if (difficulty && difficulty !== "Mixed") pool = pool.filter(q => q.difficulty === difficulty);
+    
+    selected = shuffle(pool, rng).slice(0, 10);
+    
+    // Backfill if needed
+    if (selected.length < 10) {
+      const needed = 10 - selected.length;
+      const remaining = bank.questions.filter(q => !selected.includes(q));
+      selected = [...selected, ...shuffle(remaining, rng).slice(0, needed)];
+    }
   }
 
-  return shuffle(selected, rng).map(publicView);
+  return shuffle(selected, rng).map(q => publicView(q, rng));
 }
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
   try {
-    const { roundId, type } = req.body || {};
+    const { roundId, type, category, difficulty } = req.body || {};
     if (!roundId) return res.status(400).json({ error: "Missing roundId" });
-    const questions = selectQuestions(roundId, type);
+    const questions = selectQuestions(roundId, type, category, difficulty);
     res.status(200).json({ questions });
   } catch (err) {
     console.error("round-questions error:", err);
