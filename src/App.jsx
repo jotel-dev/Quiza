@@ -29,6 +29,7 @@ import WelcomeScreen from "./pages/Welcome.jsx";
 import LeaderboardScreen from "./pages/Leaderboard.jsx";
 import CategoriesScreen from "./pages/Categories.jsx";
 import ProfileScreen from "./pages/Profile.jsx";
+import SetupScreen from "./pages/Setup.jsx";
 import StakeModal from "./components/StakeModal.jsx";
 
 const getWeekIdentifier = () => {
@@ -87,6 +88,7 @@ export default function QuizaApp() {
   const [recentGames, setRecentGames] = useState(() => loadPersistedState()?.recentGames || []);
   const [walletAddress, setWalletAddress] = useState(() => loadPersistedState()?.walletAddress || null);
   const [isStakeModalOpen, setIsStakeModalOpen] = useState(false);
+  const [quizConfig, setQuizConfig] = useState({ category: "Mixed", difficulty: "Mixed" });
 
   useEffect(() => {
     persistState({ stats, walletAddress, recentGames });
@@ -123,6 +125,12 @@ export default function QuizaApp() {
 
   const handleStartQuiz = () => {
     setIsDailyChallenge(false);
+    setScreen("setup");
+    navigate("/setup");
+  };
+
+  const handleSetupComplete = (category, difficulty) => {
+    setQuizConfig({ category, difficulty });
     if (!walletAddress) {
       setIsStakeModalOpen(true);
     } else {
@@ -156,6 +164,8 @@ export default function QuizaApp() {
         body: JSON.stringify({
           roundId: info.roundId.toString(),
           type: isDailyChallenge ? "daily" : "standard",
+          category: quizConfig.category,
+          difficulty: quizConfig.difficulty
         }),
       });
       if (!res.ok) throw new Error("Failed to load questions");
@@ -347,6 +357,7 @@ export default function QuizaApp() {
           <Routes location={location} key={location.pathname}>
             <Route path="/" element={<PageTransition pathname={location.pathname}><WelcomeScreen /></PageTransition>} />
             <Route path="/home" element={<PageTransition pathname={location.pathname}><HomeScreen onStartQuiz={handleStartQuiz} onStartDailyChallenge={handleStartDailyChallenge} stats={stats} recentGames={recentGames} walletAddress={walletAddress} onConnectWallet={handleConnectWallet} onDisconnectWallet={() => { setWalletAddress(null); setSigner(null); }} /></PageTransition>} />
+            <Route path="/setup" element={<PageTransition pathname={location.pathname}><SetupScreen onContinue={handleSetupComplete} /></PageTransition>} />
             <Route path="/quiz" element={<PageTransition pathname={location.pathname}><QuizScreen roundQuestions={roundQuestions} onRoundComplete={handleRoundComplete} /></PageTransition>} />
             <Route path="/results" element={<PageTransition pathname={location.pathname}><ResultsScreen result={result} stakeInfo={stakeInfo} signer={signer} onPlayAgain={handlePlayAgain} /></PageTransition>} />
             <Route path="/leaderboard" element={<PageTransition pathname={location.pathname}><LeaderboardScreen walletAddress={walletAddress} /></PageTransition>} />
