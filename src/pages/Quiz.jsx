@@ -11,6 +11,9 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
   const [status, setStatus] = useState("active");
   const [timeLeft, setTimeLeft] = useState(TIME_PER_QUESTION);
   const [fadeKey, setFadeKey] = useState(0);
+  const [fiftyFiftyAvailable, setFiftyFiftyAvailable] = useState(true);
+  const [addTimeAvailable, setAddTimeAvailable] = useState(true);
+  const [hiddenOptions, setHiddenOptions] = useState([]);
   const submittedAnswers = useRef([]);
   const hasAdvanced = useRef(false);
   const currentRef = useRef(0);
@@ -19,6 +22,15 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
   const q = hasQuestions ? roundQuestions[current] : null;
 
   currentRef.current = current;
+
+  useEffect(() => {
+    setFiftyFiftyAvailable(true);
+    setAddTimeAvailable(true);
+  }, [roundQuestions]);
+
+  useEffect(() => {
+    setHiddenOptions([]);
+  }, [current]);
 
   const goNext = useCallback((chosenIdx) => {
     if (hasAdvanced.current) return;
@@ -67,7 +79,20 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
     setTimeout(() => goNext(-1), 600);
   };
 
-  const timerPct = (timeLeft / TIME_PER_QUESTION) * 100;
+  const handleFiftyFifty = () => {
+    if (status !== "active" || !fiftyFiftyAvailable || !q || !q.fiftyFifty) return;
+    const toHide = [0, 1, 2, 3].filter(idx => !q.fiftyFifty.includes(idx));
+    setHiddenOptions(toHide);
+    setFiftyFiftyAvailable(false);
+  };
+
+  const handleAddTime = () => {
+    if (status !== "active" || !addTimeAvailable) return;
+    setTimeLeft(t => t + 10);
+    setAddTimeAvailable(false);
+  };
+
+  const timerPct = Math.min(100, (timeLeft / TIME_PER_QUESTION) * 100);
   const timerColor = timeLeft <= 5 ? "#EF4444" : "#0A4C86";
 
   if (!hasQuestions) {
@@ -136,6 +161,9 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
                   stateClasses = "bg-white border-slate-100 text-slate-400";
                 }
               }
+              if (hiddenOptions.includes(idx)) {
+                return <div key={idx} className="relative flex items-center justify-between gap-2 border border-dashed border-slate-200 rounded-2xl px-4 py-3.5 opacity-30 pointer-events-none" />;
+              }
               return (
                 <button
                   key={idx}
@@ -149,7 +177,24 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
             })}
           </div>
 
-          <div className="flex items-center justify-between mt-6">
+          <div className="grid grid-cols-2 gap-3 mt-6">
+            <button
+              onClick={handleFiftyFifty}
+              disabled={status !== "active" || !fiftyFiftyAvailable}
+              className={`flex items-center justify-center gap-2 py-2.5 rounded-xl border text-sm font-bold transition-all ${fiftyFiftyAvailable && status === "active" ? "bg-indigo-50 border-indigo-200 text-indigo-600 hover:bg-indigo-100" : "bg-slate-50 border-slate-200 text-slate-400 opacity-60"}`}
+            >
+              50/50
+            </button>
+            <button
+              onClick={handleAddTime}
+              disabled={status !== "active" || !addTimeAvailable}
+              className={`flex items-center justify-center gap-2 py-2.5 rounded-xl border text-sm font-bold transition-all ${addTimeAvailable && status === "active" ? "bg-orange-50 border-orange-200 text-orange-600 hover:bg-orange-100" : "bg-slate-50 border-slate-200 text-slate-400 opacity-60"}`}
+            >
+              +10s
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between mt-6 pt-5 border-t border-slate-100/60">
             <div className="flex items-center gap-1.5 text-xs text-slate-400">
               <Zap size={12} className="text-slate-300" />
               Score: <span className="font-bold text-slate-400">Hidden</span>
