@@ -1,5 +1,6 @@
 {
   "name": "quiza",
+  "description": "Proof of Ship Season 2 MiniApp",
   "private": true,
   "version": "0.0.0",
   "type": "module",

@@ -32,7 +32,7 @@ export const CELO_NETWORKS = {
 // Fill these in after deployment (see docs/DEPLOY.md)
 export const QUIZA_CONTRACT_ADDRESS = {
   alfajores: "0xYOUR_TESTNET_CONTRACT_ADDRESS",
-  mainnet: "0x81f2150e2aa7A28c788Ee8D3A2609f03566C5142",
+  mainnet: "0x1D353fB52A062e4f5d24850c3b46da8b42841Ff4",
 };
 
 // cUSD token addresses (fixed, published by Celo)

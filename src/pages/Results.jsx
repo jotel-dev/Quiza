@@ -106,8 +106,25 @@ export default function Results({ result, stakeInfo, signer, onPlayAgain }) {
       await withdrawWinnings(signer, tokenAddress, NETWORK);
       setWithdrawState("done");
     } catch (err) {
-      console.error(err);
-      setWithdrawError(err.message || "Withdrawal failed");
+      console.error("Withdraw error:", err);
+      let errMsg = err?.message || "Withdrawal failed";
+      
+      if (errMsg.toLowerCase().includes("user rejected") || errMsg.includes("4001")) {
+        errMsg = "Transaction was rejected in your wallet. Please try again.";
+      } else if (errMsg.includes("could not coalesce error")) {
+        // Ethers v6 wraps RPC errors in a huge JSON blob
+        const match = errMsg.match(/"message":\s*"([^"]+)"/);
+        errMsg = match ? match[1] : "Network error. Please try again.";
+        
+        // Handle specific DNS/Network failures common on mobile
+        if (errMsg.includes("Unable to resolve host") || errMsg.includes("Failed to fetch")) {
+          errMsg = "Network connection failed. Please check your internet connection and try again.";
+        }
+      } else if (errMsg.length > 100) {
+        errMsg = "Transaction failed. Please check your connection and try again.";
+      }
+      
+      setWithdrawError(errMsg);
       setWithdrawState("error");
     }
   };

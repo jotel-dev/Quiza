@@ -1,6 +1,9 @@
 import "dotenv/config";
 import { google } from "googleapis";
 
+/**
+ * Initializes and creates the default Firestore database if it doesn't exist
+ */
 async function run() {
   try {
     const serviceAccountStr = process.env.FIREBASE_SERVICE_ACCOUNT;
