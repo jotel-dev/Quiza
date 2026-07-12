@@ -4,6 +4,7 @@ dotenv.config();
 
 const { DEPLOYER_PRIVATE_KEY } = process.env;
 
+// Hardhat configuration for Celo networks
 const config = {
   solidity: {
     version: "0.8.20",
