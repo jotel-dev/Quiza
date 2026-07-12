@@ -5,6 +5,7 @@ import user from "./api/user.js";
 import leaderboard from "./api/leaderboard.js";
 import roundQuestions from "./api/round-questions.js";
 
+// Setup Express server and middleware
 const app = express();
 app.use(express.json());
 
