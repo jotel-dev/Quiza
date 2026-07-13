@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from "react";
+ import React, { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Clock, X, Check, SkipForward, Zap } from "lucide-react";
 
@@ -58,8 +58,13 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
     if (timeLeft <= 0) {
       setStatus("selected");
       setSelected(-1);
-      const t = setTimeout(() => goNext(-1), 1000);
-      return () => clearTimeout(t);
+      // NOTE: intentionally no cleanup returned here. Returning a cleanup tied
+      // to this branch would clear this exact timeout the instant setStatus()
+      // above causes this effect to re-run (status is a dependency), because
+      // React calls the previous run's cleanup before the next run. That was
+      // the bug: the round froze at 0s because goNext(-1) never fired.
+      setTimeout(() => goNext(-1), 1000);
+      return;
     }
     const t = setTimeout(() => setTimeLeft((s) => s - 1), 1000);
     return () => clearTimeout(t);
