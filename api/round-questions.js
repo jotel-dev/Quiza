@@ -1,11 +1,13 @@
-import fs from "fs";
-import path from "path";
+import { createRequire } from "module";
 import { createHash } from "crypto";
+import { db } from "./firebaseAdmin.js";
+
+const require = createRequire(import.meta.url);
+const questionBank = require("../src/data/questions.json");
 
 // Questions are selected here, server-side.
 // We return the answer so the frontend can provide immediate correct/incorrect UI feedback.
 // Selection is deterministic per roundId (seeded with a server secret).
-const QUESTION_BANK_PATH = path.join(process.cwd(), "src/data/questions.json");
 const SECRET = process.env.QUIZA_ROUND_SECRET || "quiza-round-v1";
 
 const CATEGORY_COLORS = {
@@ -46,11 +48,12 @@ function publicView(q, rng) {
   const randomWrong = wrongIndices[Math.floor(rng() * wrongIndices.length)];
   const fiftyFifty = shuffle([q.answer, randomWrong], rng);
   
-  return { ...q, color: CATEGORY_COLORS[q.category] || "#4F46E5", fiftyFifty };
+  const { answer, ...rest } = q;
+  return { ...rest, color: CATEGORY_COLORS[q.category] || "#4F46E5", fiftyFifty };
 }
 
 export function selectQuestions(roundId, type = "standard", category = "Mixed", difficulty = "Mixed") {
-  const bank = JSON.parse(fs.readFileSync(QUESTION_BANK_PATH, "utf8"));
+  const bank = questionBank;
   const rng = mulberry32(seedFrom(roundId));
 
   let selected;
@@ -79,8 +82,20 @@ export function selectQuestions(roundId, type = "standard", category = "Mixed", 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
   try {
-    const { roundId, type, category, difficulty } = req.body || {};
+    const { roundId, type, category, difficulty, walletAddress } = req.body || {};
     if (!roundId) return res.status(400).json({ error: "Missing roundId" });
+
+    if (type === "daily" && walletAddress && db) {
+      const playerSnap = await db.collection("players").doc(walletAddress).get();
+      if (playerSnap.exists) {
+        const data = playerSnap.data();
+        const todayStr = new Date().toDateString();
+        if (data.lastDailyChallengeDate === todayStr) {
+          return res.status(403).json({ error: "Daily challenge already played today" });
+        }
+      }
+    }
+
     const questions = selectQuestions(roundId, type, category, difficulty);
     res.status(200).json({ questions });
   } catch (err) {

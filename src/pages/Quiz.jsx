@@ -38,8 +38,6 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
     hasAdvanced.current = true;
 
     const currentQuestion = roundQuestions[currentRef.current];
-    const isCorrect = chosenIdx === currentQuestion.answer;
-    if (isCorrect) setCorrectCount((c) => c + 1);
 
     submittedAnswers.current.push(chosenIdx);
 
@@ -163,13 +161,10 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {q.options.map((opt, idx) => {
               const isSelected = selected === idx;
-              const isCorrectAnswer = idx === q.answer;
               let stateClasses = "bg-white border-slate-150 text-slate-700 hover:border-[#0A4C86]/40 hover:bg-blue-50/40";
               if (status !== "active") {
-                if (isCorrectAnswer) {
-                  stateClasses = "bg-emerald-50 border-[#10B981] text-emerald-700 shadow-[0_0_0_3px_rgba(16,185,129,0.15)]";
-                } else if (isSelected && !isCorrectAnswer) {
-                  stateClasses = "bg-red-50 border-[#EF4444] text-red-600";
+                if (isSelected) {
+                  stateClasses = "bg-indigo-50 border-indigo-500 text-indigo-700 shadow-[0_0_0_3px_rgba(79,70,229,0.15)]";
                 } else {
                   stateClasses = "bg-white border-slate-100 text-slate-400";
                 }
@@ -185,8 +180,7 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
                   className={`relative flex items-center justify-between gap-2 border rounded-2xl px-4 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-95 ${stateClasses}`}
                 >
                   <span>{opt}</span>
-                  {status !== "active" && isCorrectAnswer && <Check size={16} className="text-[#10B981] animate-check shrink-0" />}
-                  {status !== "active" && isSelected && !isCorrectAnswer && <X size={16} className="text-[#EF4444] shrink-0" />}
+                  {status !== "active" && isSelected && <Check size={16} className="text-indigo-600 animate-check shrink-0" />}
                 </button>
               );
             })}
@@ -212,7 +206,7 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
           <div className="flex items-center justify-between mt-6 pt-5 border-t border-slate-100/60">
             <div className="flex items-center gap-1.5 text-xs text-slate-400">
               <Zap size={12} className="text-[#F59E0B]" />
-              Score: <span className="font-bold text-slate-600">{correctCount}</span>
+              <span className="font-semibold">Score hidden until end</span>
             </div>
             <button
               onClick={handleSkip}
