@@ -15,33 +15,3 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
-export const submitScoreToLeaderboard = async (address, correct, total, streak) => {
-  if (!address) return;
-  
-  const playerRef = doc(db, "players", address);
-  const playerSnap = await getDoc(playerRef);
-  
-  const points = correct * 10;
-  
-  if (playerSnap.exists()) {
-    await updateDoc(playerRef, {
-      gamesPlayed: increment(1),
-      totalPoints: increment(points),
-      correctAnswers: increment(correct),
-      totalQuestions: increment(total),
-      streak: streak,
-      lastUpdated: serverTimestamp()
-    });
-  } else {
-    await setDoc(playerRef, {
-      address: address,
-      username: address.slice(0, 6) + "...",
-      gamesPlayed: 1,
-      totalPoints: points,
-      correctAnswers: correct,
-      totalQuestions: total,
-      streak: streak,
-      lastUpdated: serverTimestamp()
-    });
-  }
-};

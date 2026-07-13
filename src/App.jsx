@@ -31,14 +31,14 @@ import CategoriesScreen from "./pages/Categories.jsx";
 import ProfileScreen from "./pages/Profile.jsx";
 import SetupScreen from "./pages/Setup.jsx";
 import StakeModal from "./components/StakeModal.jsx";
+import ErrorBoundary from "./components/ErrorBoundary.jsx";
 
 const getWeekIdentifier = () => {
   const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() + 4 - (d.getDay() || 7));
-  const yearStart = new Date(d.getFullYear(), 0, 1);
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
   const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-  return `${d.getFullYear()}-W${weekNo}`;
+  return `${d.getUTCFullYear()}-W${weekNo}`;
 };
 
 
@@ -165,7 +165,8 @@ export default function QuizaApp() {
           roundId: info.roundId.toString(),
           type: isDailyChallenge ? "daily" : "standard",
           category: quizConfig.category,
-          difficulty: quizConfig.difficulty
+          difficulty: quizConfig.difficulty,
+          walletAddress
         }),
       });
       if (!res.ok) throw new Error("Failed to load questions");
@@ -218,19 +219,7 @@ export default function QuizaApp() {
         const today = new Date();
         const todayStr = today.toDateString();
 
-        let newStreak = s.streak;
-        if (s.lastPlayedDate) {
-          const lastDate = new Date(s.lastPlayedDate);
-          const yesterday = new Date(today);
-          yesterday.setDate(yesterday.getDate() - 1);
-          if (lastDate.toDateString() === yesterday.toDateString()) {
-            newStreak += 1;
-          } else if (lastDate.toDateString() !== todayStr) {
-            newStreak = 1;
-          }
-        } else {
-          newStreak = 1;
-        }
+        let newStreak = verified.won ? s.streak + 1 : 0;
 
         const currentWeek = getWeekIdentifier();
         let newWeeklyQuizzes = s.weeklyQuizzes;
@@ -353,18 +342,20 @@ export default function QuizaApp() {
       )}
 
       <main className="flex-1 relative pb-20 lg:pb-0 overflow-x-hidden">
-        <AnimatePresence mode="wait">
-          <Routes location={location} key={location.pathname}>
-            <Route path="/" element={<PageTransition pathname={location.pathname}><WelcomeScreen /></PageTransition>} />
-            <Route path="/home" element={<PageTransition pathname={location.pathname}><HomeScreen onStartQuiz={handleStartQuiz} onStartDailyChallenge={handleStartDailyChallenge} stats={stats} recentGames={recentGames} walletAddress={walletAddress} onConnectWallet={handleConnectWallet} onDisconnectWallet={() => { setWalletAddress(null); setSigner(null); }} /></PageTransition>} />
-            <Route path="/setup" element={<PageTransition pathname={location.pathname}><SetupScreen onContinue={handleSetupComplete} /></PageTransition>} />
-            <Route path="/quiz" element={<PageTransition pathname={location.pathname}><QuizScreen roundQuestions={roundQuestions} onRoundComplete={handleRoundComplete} /></PageTransition>} />
-            <Route path="/results" element={<PageTransition pathname={location.pathname}><ResultsScreen result={result} stakeInfo={stakeInfo} signer={signer} onPlayAgain={handlePlayAgain} /></PageTransition>} />
-            <Route path="/leaderboard" element={<PageTransition pathname={location.pathname}><LeaderboardScreen walletAddress={walletAddress} /></PageTransition>} />
-            <Route path="/categories" element={<PageTransition pathname={location.pathname}><CategoriesScreen /></PageTransition>} />
-            <Route path="/profile" element={<PageTransition pathname={location.pathname}><ProfileScreen stats={stats} recentGames={recentGames} walletAddress={walletAddress} onConnectWallet={handleConnectWallet} onDisconnectWallet={() => { setWalletAddress(null); setSigner(null); }} /></PageTransition>} />
-          </Routes>
-        </AnimatePresence>
+        <ErrorBoundary>
+          <AnimatePresence mode="wait">
+            <Routes location={location} key={location.pathname}>
+              <Route path="/" element={<PageTransition pathname={location.pathname}><WelcomeScreen /></PageTransition>} />
+              <Route path="/home" element={<PageTransition pathname={location.pathname}><HomeScreen onStartQuiz={handleStartQuiz} onStartDailyChallenge={handleStartDailyChallenge} stats={stats} recentGames={recentGames} walletAddress={walletAddress} onConnectWallet={handleConnectWallet} onDisconnectWallet={() => { setWalletAddress(null); setSigner(null); }} /></PageTransition>} />
+              <Route path="/setup" element={<PageTransition pathname={location.pathname}><SetupScreen onContinue={handleSetupComplete} /></PageTransition>} />
+              <Route path="/quiz" element={<PageTransition pathname={location.pathname}><QuizScreen roundQuestions={roundQuestions} onRoundComplete={handleRoundComplete} /></PageTransition>} />
+              <Route path="/results" element={<PageTransition pathname={location.pathname}><ResultsScreen result={result} stakeInfo={stakeInfo} signer={signer} onPlayAgain={handlePlayAgain} /></PageTransition>} />
+              <Route path="/leaderboard" element={<PageTransition pathname={location.pathname}><LeaderboardScreen walletAddress={walletAddress} /></PageTransition>} />
+              <Route path="/categories" element={<PageTransition pathname={location.pathname}><CategoriesScreen /></PageTransition>} />
+              <Route path="/profile" element={<PageTransition pathname={location.pathname}><ProfileScreen stats={stats} recentGames={recentGames} walletAddress={walletAddress} onConnectWallet={handleConnectWallet} onDisconnectWallet={() => { setWalletAddress(null); setSigner(null); }} /></PageTransition>} />
+            </Routes>
+          </AnimatePresence>
+        </ErrorBoundary>
 
         {screen === "verifying" && (
           <div className="flex-1 flex items-center justify-center p-4">

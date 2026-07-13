@@ -1,6 +1,8 @@
 import { JsonRpcProvider, Wallet, Contract, ZeroAddress, parseEther, formatEther } from "ethers";
-import fs from "fs";
-import path from "path";
+import { createRequire } from "module";
+
+const require = createRequire(import.meta.url);
+const questionBank = require("../src/data/questions.json");
 
 import { QUIZA_ABI, QUIZA_CONTRACT_ADDRESS, CELO_NETWORKS } from "../src/lib/quizaContract.js";
 import { db } from "./firebaseAdmin.js";
@@ -18,7 +20,6 @@ function getVerifierWallet() {
 }
 
 export function scoreRound(questionIds, submittedAnswers) {
-  const questionBank = JSON.parse(fs.readFileSync(path.join(process.cwd(), "src/data/questions.json"), "utf8"));
   const byId = Object.fromEntries(questionBank.questions.map((q) => [q.id, q]));
   let correctCount = 0;
   const correctAnswers = [];
