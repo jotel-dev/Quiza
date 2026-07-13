@@ -2,9 +2,9 @@ import fs from "fs";
 import path from "path";
 import { createHash } from "crypto";
 
-// Questions are selected here, server-side, and returned WITHOUT the answer field.
-// Selection is deterministic per roundId (seeded with a server secret) so the same
-// round always yields the same questions and the client cannot choose or inspect them.
+// Questions are selected here, server-side.
+// We return the answer so the frontend can provide immediate correct/incorrect UI feedback.
+// Selection is deterministic per roundId (seeded with a server secret).
 const QUESTION_BANK_PATH = path.join(process.cwd(), "src/data/questions.json");
 const SECRET = process.env.QUIZA_ROUND_SECRET || "quiza-round-v1";
 
@@ -41,13 +41,12 @@ function shuffle(arr, rng) {
 }
 
 function publicView(q, rng) {
-  const { answer, ...rest } = q; // strip the answer
-  // Generate 50/50 hint locally (correct + 1 random wrong) without leaking it fully
-  const wrongIndices = [0, 1, 2, 3].filter(i => i !== answer);
+  // Generate 50/50 hint locally (correct + 1 random wrong)
+  const wrongIndices = [0, 1, 2, 3].filter(i => i !== q.answer);
   const randomWrong = wrongIndices[Math.floor(rng() * wrongIndices.length)];
-  const fiftyFifty = shuffle([answer, randomWrong], rng);
+  const fiftyFifty = shuffle([q.answer, randomWrong], rng);
   
-  return { ...rest, color: CATEGORY_COLORS[q.category] || "#4F46E5", fiftyFifty };
+  return { ...q, color: CATEGORY_COLORS[q.category] || "#4F46E5", fiftyFifty };
 }
 
 export function selectQuestions(roundId, type = "standard", category = "Mixed", difficulty = "Mixed") {
