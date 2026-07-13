@@ -21,9 +21,9 @@ Quiza lets anyone stake a small amount of CELO or cUSD, answer 10 trivia questio
 | Smart contract | Solidity ^0.8.20, OpenZeppelin (Ownable, ReentrancyGuard) |
 | Chain | Celo (Alfajores testnet → Mainnet) |
 | Deployment | Hardhat |
-| Frontend | React + Tailwind CSS |
+| Frontend | React + Vite + Tailwind CSS |
 | Wallet | MiniPay (EIP-1193 injected provider) via ethers.js v6 |
-| Backend | Node.js verifier service (Express/serverless) |
+| Backend | Node.js verifier service (Express/serverless, Firebase) |
 
 ## Project structure
 
@@ -33,24 +33,20 @@ quiza/
 │   └── Quiza.sol              # Stake, resolve, and payout logic
 ├── scripts/
 │   └── deploy.js              # Hardhat deployment script
-├── frontend/
-│   └── src/
-│       ├── QuizaHome.jsx       # Home screen
-│       ├── QuizaStakeModal.jsx # Wallet connect + stake flow
-│       ├── QuizaGameplay.jsx   # Quiz screen (timer, progress, feedback)
-│       ├── QuizaResults.jsx    # Results screen (score, payout, share)
-│       └── lib/
-│           └── quizaContract.js # Frontend <-> contract integration
-├── backend/
-│   └── verifyRound.js         # Scores answers + calls resolve() on-chain
-├── questions/
-│   └── question_bank.json     # Math, Geography, History, General Knowledge, Web3
+├── src/
+│   ├── pages/                 # Home, Quiz, Results, Leaderboard screens
+│   ├── components/            # Reusable UI components
+│   ├── lib/                   # quizaContract.js and frontend integration
+│   └── App.jsx                # Main application routing
+├── api/
+│   ├── verify-round.js        # Scores answers + calls resolve() on-chain
+│   └── leaderboard.js         # Fetch/update leaderboard rankings
 ├── docs/
-│   ├── CHECKLIST.md            # Proof of Ship + build checklist
-│   └── DEPLOY.md               # Step-by-step deployment guide
+│   ├── CHECKLIST.md           # Proof of Ship + build checklist
+│   └── DEPLOY.md              # Step-by-step deployment guide
 ├── hardhat.config.js
 ├── package.json
-└── .env.example
+└── vite.config.js
 ```
 
 ## Getting started
@@ -62,8 +58,11 @@ npm install
 # copy env template and fill in your keys
 cp .env.example .env
 
-# compile the contract
-npm run compile
+# start the local dev server
+npm run dev
+
+# start the local api server
+npm run dev:api
 
 # deploy to Alfajores testnet
 npm run deploy:testnet
