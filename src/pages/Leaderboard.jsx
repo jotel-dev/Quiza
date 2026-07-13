@@ -157,7 +157,7 @@ export default function Leaderboard({ walletAddress }) {
 
                     <div className="text-right ml-4 shrink-0">
                       <div className="font-black text-lg sm:text-xl text-[#4F46E5]">
-                        {player.totalPoints.toLocaleString()}
+                        {(player.totalPoints || 0).toLocaleString()}
                       </div>
                       <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
                         Points

@@ -5,13 +5,6 @@ import { motion } from "framer-motion";
 export default function Welcome() {
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      navigate("/home");
-    }, 2500);
-    return () => clearTimeout(timer);
-  }, [navigate]);
-
   return (
     <div className="min-h-screen w-full flex items-center justify-center overflow-hidden relative bg-white">
       <div className="absolute top-10 left-10 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl" />
@@ -36,7 +29,13 @@ export default function Welcome() {
           className="text-center"
         >
           <h1 className="text-slate-800 text-3xl font-extrabold tracking-tight">QUIZA</h1>
-          <p className="text-slate-500 font-medium tracking-widest text-sm mt-1">PLAY • LEARN • WIN</p>
+          <p className="text-slate-500 font-medium tracking-widest text-sm mt-1 mb-8">PLAY • LEARN • WIN</p>
+          <button 
+            onClick={() => navigate("/home")}
+            className="btn-primary px-8 py-3 rounded-full text-sm font-bold shadow-lg shadow-indigo-200"
+          >
+            Get Started
+          </button>
         </motion.div>
       </motion.div>
     </div>

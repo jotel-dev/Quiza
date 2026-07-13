@@ -202,7 +202,7 @@ export default function Results({ result, stakeInfo, signer, onPlayAgain }) {
               <div>
                 <p className="text-xs text-slate-400 font-medium">{won ? "You won" : "Stake"}</p>
                 <p className={`text-sm font-bold ${won ? "text-slate-800" : "text-slate-500"}`}>
-                  {won ? `+${payout} ${stakeInfo.token}` : `${stakeInfo.amount || 0.01} ${stakeInfo.token} staked`}
+                  {won ? `+${payout} ${stakeInfo.token}` : `${stakeInfo.amount ?? (stakeInfo.token === "cUSD" ? 0.001 : 0.01)} ${stakeInfo.token} staked`}
                 </p>
               </div>
             </div>

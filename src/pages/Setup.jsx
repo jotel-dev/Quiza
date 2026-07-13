@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, Loader2, Info } from "lucide-react";
 
 export default function Setup({ onContinue }) {
+  const location = useLocation();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   
-  const [category, setCategory] = useState("Mixed");
+  const [category, setCategory] = useState(location.state?.category || "Mixed");
   const [difficulty, setDifficulty] = useState("Mixed");
 
   useEffect(() => {

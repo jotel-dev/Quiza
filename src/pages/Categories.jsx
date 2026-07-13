@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Search, FlaskConical, Landmark, CircleDot, Film, Globe2 } from "lucide-react";
 
 const categories = [
@@ -21,6 +22,7 @@ function GlassCard({ children, className = "", onClick }) {
 }
 
 export default function Categories() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredCategories = categories.filter((cat) =>
@@ -53,7 +55,7 @@ export default function Categories() {
               <GlassCard 
                 key={label} 
                 className="p-6 flex flex-col items-center text-center hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(79,70,229,0.12)] transition-all cursor-pointer h-full justify-center" 
-                onClick={() => alert(`${label} category coming soon!`)}
+                onClick={() => navigate("/setup", { state: { category: label } })}
               >
                 <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ backgroundColor: `${color}1A` }}>
                   <Icon size={32} style={{ color }} />
