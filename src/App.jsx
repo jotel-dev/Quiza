@@ -213,6 +213,7 @@ export default function QuizaApp() {
         payout,
         txHash: verified.txHash,
         correctAnswers: verified.correctAnswers,
+        submittedAnswers,
       });
 
       setStats((s) => {
@@ -349,7 +350,7 @@ export default function QuizaApp() {
               <Route path="/home" element={<PageTransition pathname={location.pathname}><HomeScreen onStartQuiz={handleStartQuiz} onStartDailyChallenge={handleStartDailyChallenge} stats={stats} recentGames={recentGames} walletAddress={walletAddress} onConnectWallet={handleConnectWallet} onDisconnectWallet={() => { setWalletAddress(null); setSigner(null); }} /></PageTransition>} />
               <Route path="/setup" element={<PageTransition pathname={location.pathname}><SetupScreen onContinue={handleSetupComplete} /></PageTransition>} />
               <Route path="/quiz" element={<PageTransition pathname={location.pathname}><QuizScreen roundQuestions={roundQuestions} onRoundComplete={handleRoundComplete} /></PageTransition>} />
-              <Route path="/results" element={<PageTransition pathname={location.pathname}><ResultsScreen result={result} stakeInfo={stakeInfo} signer={signer} onPlayAgain={handlePlayAgain} /></PageTransition>} />
+              <Route path="/results" element={<PageTransition pathname={location.pathname}><ResultsScreen result={result} roundQuestions={roundQuestions} stakeInfo={stakeInfo} signer={signer} onPlayAgain={handlePlayAgain} /></PageTransition>} />
               <Route path="/leaderboard" element={<PageTransition pathname={location.pathname}><LeaderboardScreen walletAddress={walletAddress} /></PageTransition>} />
               <Route path="/categories" element={<PageTransition pathname={location.pathname}><CategoriesScreen /></PageTransition>} />
               <Route path="/profile" element={<PageTransition pathname={location.pathname}><ProfileScreen stats={stats} recentGames={recentGames} walletAddress={walletAddress} onConnectWallet={handleConnectWallet} onDisconnectWallet={() => { setWalletAddress(null); setSigner(null); }} /></PageTransition>} />
