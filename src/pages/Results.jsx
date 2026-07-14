@@ -43,7 +43,7 @@ function ConfettiField() {
   );
 }
 
-export default function Results({ result, stakeInfo, signer, onPlayAgain }) {
+export default function Results({ result, roundQuestions, stakeInfo, signer, onPlayAgain }) {
   const accuracy = Math.round((result.correct / result.total) * 100);
   const won = result.won;
   const payout = result.payout;
@@ -52,6 +52,7 @@ export default function Results({ result, stakeInfo, signer, onPlayAgain }) {
   const [withdrawState, setWithdrawState] = useState("idle");
   const [withdrawError, setWithdrawError] = useState(null);
   const [payoutReady, setPayoutReady] = useState(!won);
+  const [showReview, setShowReview] = useState(false);
   const scoreCount = useCountUp(result.correct * 10, 1000, showTrophy);
   const accuracyCount = useCountUp(accuracy, 1000, showTrophy);
 
@@ -237,15 +238,72 @@ export default function Results({ result, stakeInfo, signer, onPlayAgain }) {
           )}
         </div>
 
-        <div className="flex items-center gap-3 mt-5 animate-fade-in" style={{ animationDelay: "0.6s" }}>
-          <button onClick={onPlayAgain} className="flex-1 flex items-center justify-center gap-2 bg-[#4F46E5] text-white text-sm font-semibold py-3 rounded-xl shadow-md shadow-indigo-200 hover:opacity-90 transition active:scale-95">
-            <RotateCcw size={15} />Play Again
-          </button>
-          <button onClick={handleShare} className="flex-1 flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-600 text-sm font-semibold py-3 rounded-xl hover:bg-slate-50 transition active:scale-95">
-            <Share2 size={15} />Share Score
+        <div className="flex flex-col gap-3 mt-5 animate-fade-in" style={{ animationDelay: "0.6s" }}>
+          <div className="flex items-center gap-3">
+            <button onClick={onPlayAgain} className="flex-1 flex items-center justify-center gap-2 bg-[#4F46E5] text-white text-sm font-semibold py-3 rounded-xl shadow-md shadow-indigo-200 hover:opacity-90 transition active:scale-95">
+              <RotateCcw size={15} />Play Again
+            </button>
+            <button onClick={handleShare} className="flex-1 flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-600 text-sm font-semibold py-3 rounded-xl hover:bg-slate-50 transition active:scale-95">
+              <Share2 size={15} />Share Score
+            </button>
+          </div>
+          <button onClick={() => setShowReview(true)} className="w-full flex items-center justify-center gap-2 bg-indigo-50 border border-indigo-100 text-indigo-600 text-sm font-semibold py-3 rounded-xl hover:bg-indigo-100 transition active:scale-95">
+            Review Answers
           </button>
         </div>
       </div>
+
+      {showReview && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex justify-center items-end sm:items-center p-0 sm:p-4 animate-fade-in">
+          <div className="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[85vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-5 border-b border-slate-100">
+              <h2 className="text-lg font-bold text-slate-800">Review Answers</h2>
+              <button onClick={() => setShowReview(false)} className="p-2 bg-slate-50 text-slate-400 hover:text-slate-600 rounded-full transition">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-5 space-y-6">
+              {roundQuestions?.map((q, idx) => {
+                const submitted = result.submittedAnswers?.[idx];
+                const correct = result.correctAnswers?.[idx];
+                const isCorrect = submitted === correct;
+                
+                return (
+                  <div key={idx} className="border border-slate-100 rounded-2xl p-4 bg-slate-50/50">
+                    <p className="text-sm font-bold text-slate-800 mb-3">{idx + 1}. {q.question}</p>
+                    <div className="space-y-2">
+                      {q.options.map((opt, optIdx) => {
+                        let btnClass = "border-slate-200 bg-white text-slate-600";
+                        let icon = null;
+                        
+                        if (optIdx === correct) {
+                          btnClass = "border-emerald-500 bg-emerald-50 text-emerald-700 shadow-[0_0_0_2px_rgba(16,185,129,0.15)]";
+                          icon = <Check size={16} className="text-emerald-600" />;
+                        } else if (optIdx === submitted && !isCorrect) {
+                          btnClass = "border-red-400 bg-red-50 text-red-700 shadow-[0_0_0_2px_rgba(239,68,68,0.15)]";
+                          icon = <X size={16} className="text-red-600" />;
+                        }
+                        
+                        return (
+                          <div key={optIdx} className={`flex items-center justify-between px-3.5 py-3 rounded-xl border text-sm font-semibold transition-all ${btnClass}`}>
+                            <span>{opt}</span>
+                            {icon}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {submitted === -1 && (
+                      <div className="mt-3 inline-block px-3 py-1.5 bg-orange-50 border border-orange-200 rounded-lg">
+                        <p className="text-xs font-bold text-orange-600">Skipped or out of time</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
