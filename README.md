@@ -82,6 +82,9 @@ Full deployment walkthrough (funding a wallet, verifying the contract, going to 
 
 v1 uses a trusted backend verifier to check quiz scores, since the answer key can't live on-chain without being publicly readable. This can evolve toward a commit-reveal or oracle-based scheme in a future season.
 
+> [!IMPORTANT]
+> **The Verifier Wallet needs gas:** Because the backend calls `resolve()` on-chain, the address specified by `QUIZA_VERIFIER_PRIVATE_KEY` in your `.env` must have native CELO to pay for transaction fees. If this wallet runs out of gas, players will see an "insufficient funds" error when finishing a quiz. Make sure to keep the Verifier Wallet funded on the network you are running (`QUIZA_NETWORK`).
+
 ## Why Celo / MiniPay
 
 Celo's native CELO token is ERC20-compatible out of the box, so Quiza can accept both CELO and cUSD through one unified contract interface — no wrapping, no separate logic paths. Combined with MiniPay's 16M+ user base and self-custodial stablecoin rails, it's a natural fit for a low-friction, real-money trivia game aimed at everyday users rather than crypto natives.
