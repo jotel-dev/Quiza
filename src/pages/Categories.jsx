@@ -1,14 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, FlaskConical, Landmark, CircleDot, Film, Globe2 } from "lucide-react";
+import { Search, FlaskConical, Landmark, CircleDot, Film, Globe2, Loader2, Sparkles } from "lucide-react";
 
-const categories = [
-  { icon: FlaskConical, label: "Math", count: 10, color: "#4F46E5" },
-  { icon: Landmark, label: "History", count: 10, color: "#F59E0B" },
-  { icon: CircleDot, label: "Web3", count: 5, color: "#10B981" },
-  { icon: Film, label: "General Knowledge", count: 10, color: "#EF4444" },
-  { icon: Globe2, label: "Geography", count: 10, color: "#10B981" },
-];
+const CATEGORY_META = {
+  "Math": { icon: FlaskConical, color: "#4F46E5" },
+  "History": { icon: Landmark, color: "#F59E0B" },
+  "Web3": { icon: CircleDot, color: "#10B981" },
+  "General Knowledge": { icon: Film, color: "#EF4444" },
+  "Geography": { icon: Globe2, color: "#10B981" },
+};
 
 function GlassCard({ children, className = "", onClick }) {
   return (
@@ -24,6 +24,31 @@ function GlassCard({ children, className = "", onClick }) {
 export default function Categories() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/question-stats")
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.categories) {
+          const fetchedCategories = Object.keys(data.categories)
+            .filter(cat => cat !== "Mixed")
+            .map(cat => ({
+              label: cat,
+              count: data.categories[cat].mixed || 0,
+              icon: CATEGORY_META[cat]?.icon || Sparkles,
+              color: CATEGORY_META[cat]?.color || "#8B5CF6"
+            }));
+          setCategories(fetchedCategories);
+        }
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("Failed to fetch categories:", err);
+        setLoading(false);
+      });
+  }, []);
 
   const filteredCategories = categories.filter((cat) =>
     cat.label.toLowerCase().includes(searchQuery.toLowerCase())
@@ -49,7 +74,11 @@ export default function Categories() {
       </div>
 
       <div className="flex-1">
-        {filteredCategories.length > 0 ? (
+        {loading ? (
+          <div className="h-full flex items-center justify-center min-h-[200px]">
+            <Loader2 className="animate-spin text-[#4F46E5]" size={32} />
+          </div>
+        ) : filteredCategories.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
             {filteredCategories.map(({ icon: Icon, label, count, color }) => (
               <GlassCard 
