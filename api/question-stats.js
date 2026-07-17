@@ -1,13 +1,12 @@
-import fs from "fs";
-import path from "path";
+import { createRequire } from "module";
 
-const QUESTION_BANK_PATH = path.join(process.cwd(), "src/data/questions.json");
+const require = createRequire(import.meta.url);
+const bank = require("../src/data/questions.json");
 
 export default async function handler(req, res) {
   if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
   
   try {
-    const bank = JSON.parse(fs.readFileSync(QUESTION_BANK_PATH, "utf8"));
     const stats = { 
       total: bank.questions.length, 
       categories: {
