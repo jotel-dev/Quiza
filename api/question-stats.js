@@ -1,7 +1,7 @@
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
-const bank = require("../src/data/questions.json");
+const bank = require("./data/questions.json");
 
 export default async function handler(req, res) {
   if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });

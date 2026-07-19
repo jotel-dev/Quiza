@@ -2,7 +2,7 @@ import { JsonRpcProvider, Wallet, Contract, ZeroAddress, parseEther, formatEther
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
-const questionBank = require("../src/data/questions.json");
+const questionBank = require("./data/questions.json");
 
 import { QUIZA_ABI, QUIZA_CONTRACT_ADDRESS, CELO_NETWORKS } from "../src/lib/quizaContract.js";
 import { db } from "./firebaseAdmin.js";

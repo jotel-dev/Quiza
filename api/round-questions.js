@@ -3,7 +3,7 @@ import { createHash } from "crypto";
 import { db } from "./firebaseAdmin.js";
 
 const require = createRequire(import.meta.url);
-const questionBank = require("../src/data/questions.json");
+const questionBank = require("./data/questions.json");
 
 // Questions are selected here, server-side.
 // We return the answer so the frontend can provide immediate correct/incorrect UI feedback.
