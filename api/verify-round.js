@@ -1,4 +1,4 @@
-import { JsonRpcProvider, Wallet, Contract, ZeroAddress, parseEther, formatEther } from "ethers";
+import { JsonRpcProvider, Wallet, Contract, ZeroAddress, parseEther, formatEther, NonceManager } from "ethers";
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
@@ -14,9 +14,15 @@ const VERIFIER_PRIVATE_KEY = process.env.QUIZA_VERIFIER_PRIVATE_KEY;
 let NETWORK = process.env.QUIZA_NETWORK || "alfajores";
 if (NETWORK === "celo") NETWORK = "mainnet";
 
+let globalVerifierWallet = null;
+
 function getVerifierWallet() {
-  const provider = new JsonRpcProvider(CELO_NETWORKS[NETWORK].rpcUrls[0]);
-  return new Wallet(VERIFIER_PRIVATE_KEY, provider);
+  if (!globalVerifierWallet) {
+    const provider = new JsonRpcProvider(CELO_NETWORKS[NETWORK].rpcUrls[0]);
+    const baseWallet = new Wallet(VERIFIER_PRIVATE_KEY, provider);
+    globalVerifierWallet = new NonceManager(baseWallet);
+  }
+  return globalVerifierWallet;
 }
 
 export function scoreRound(questionIds, submittedAnswers) {
@@ -102,18 +108,29 @@ export async function verifyAndResolve({ roundId, questionIds, submittedAnswers,
 
   let txHash = null;
   if (!round.resolved) {
-    try {
-      const tx = await contract.resolve(roundId, won);
-      txHash = tx.hash;
-      // We intentionally DO NOT await tx.wait() here to avoid Vercel's 10-second function timeout.
-      // The transaction has been broadcasted and will be mined asynchronously.
-    } catch (err) {
-      const msg = err?.message || "";
-      if (msg.includes("Round already resolved")) {
-        console.warn(`Round ${roundId} is already resolved. Skipping on-chain tx.`);
-      } else {
-        // Any other revert (e.g. "Round does not exist") is a real failure — do not hide it.
-        throw err;
+    let retries = 3;
+    while (retries > 0) {
+      try {
+        const tx = await contract.resolve(roundId, won);
+        txHash = tx.hash;
+        break; // We intentionally DO NOT await tx.wait() here
+      } catch (err) {
+        const msg = err?.message || "";
+        const code = err?.code || "";
+        if (msg.includes("Round already resolved")) {
+          console.warn(`Round ${roundId} is already resolved. Skipping on-chain tx.`);
+          break;
+        } else if (code === "REPLACEMENT_UNDERPRICED" || code === "NONCE_EXPIRED" || msg.includes("nonce") || msg.includes("replacement transaction underpriced")) {
+          console.warn(`Nonce issue detected, retrying... (${retries} left). Error: ${code}`);
+          retries--;
+          if (retries === 0) throw err;
+          // Invalidate the cached nonce to force fetching from the network again
+          if (verifierWallet.reset) verifierWallet.reset();
+          await new Promise(r => setTimeout(r, 800)); // small delay
+        } else {
+          // Any other revert (e.g. "Round does not exist") is a real failure — do not hide it.
+          throw err;
+        }
       }
     }
   } else {
