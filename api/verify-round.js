@@ -1,4 +1,4 @@
-import { JsonRpcProvider, Wallet, Contract, ZeroAddress, parseEther, formatEther, verifyMessage } from "ethers";
+import { JsonRpcProvider, Wallet, Contract, ZeroAddress, parseEther, formatEther } from "ethers";
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
@@ -36,7 +36,7 @@ export function scoreRound(questionIds, submittedAnswers) {
   return { correctCount, total, won, correctAnswers };
 }
 
-export async function verifyAndResolve({ roundId, questionIds, submittedAnswers, address, signature }) {
+export async function verifyAndResolve({ roundId, questionIds, submittedAnswers, address, secretToken }) {
   if (!VERIFIER_PRIVATE_KEY) {
     throw new Error("QUIZA_VERIFIER_PRIVATE_KEY is not set in environment");
   }
@@ -49,25 +49,24 @@ export async function verifyAndResolve({ roundId, questionIds, submittedAnswers,
   if (!address || !address.startsWith("0x")) {
     throw new Error("Missing or invalid player address");
   }
-  if (!signature) {
-    throw new Error("Missing signature");
+  if (!secretToken) {
+    throw new Error("Missing secure token for this round");
   }
 
-  const message = JSON.stringify({
-    roundId: roundId.toString(),
-    submittedAnswers
-  });
-
-  let recoveredAddress;
-  try {
-    recoveredAddress = verifyMessage(message, signature);
-  } catch (err) {
-    throw new Error("Invalid signature format");
+  // Verify the secret token against Firestore to prevent griefing
+  const secretRef = db.collection("roundSecrets").doc(roundId.toString());
+  const secretDoc = await secretRef.get();
+  
+  if (!secretDoc.exists) {
+    throw new Error("Invalid or expired round session");
   }
-
-  if (recoveredAddress.toLowerCase() !== address.toLowerCase()) {
-    throw new Error("Signature verification failed: signer does not match player address");
+  
+  if (secretDoc.data().token !== secretToken) {
+    throw new Error("Unauthorized submission token");
   }
+  
+  // Delete the token immediately to prevent replay attacks
+  await secretRef.delete();
 
   const { correctCount, total, won, correctAnswers } = scoreRound(questionIds, submittedAnswers);
 
