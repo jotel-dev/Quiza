@@ -23,6 +23,7 @@ contract Quiza is Ownable, ReentrancyGuard, Pausable {
         uint256 amount;
         bool resolved;
         bool won;
+        uint256 createdAt;
     }
 
     mapping(uint256 => Round) public rounds;
@@ -32,6 +33,7 @@ contract Quiza is Ownable, ReentrancyGuard, Pausable {
     event Resolved(uint256 indexed roundId, address indexed player, bool won, uint256 payout);
     event Withdrawn(address indexed player, address token, uint256 amount);
     event VerifierUpdated(address newVerifier);
+    event TimeoutClaimed(uint256 indexed roundId, address indexed player, uint256 amount);
 
     modifier onlyVerifier() {
         require(msg.sender == verifier, "Caller is not the verifier");
@@ -70,7 +72,8 @@ contract Quiza is Ownable, ReentrancyGuard, Pausable {
             token: address(0),
             amount: msg.value,
             resolved: false,
-            won: false
+            won: false,
+            createdAt: block.timestamp
         });
 
         emit Staked(roundId, msg.sender, address(0), msg.value);
@@ -88,7 +91,8 @@ contract Quiza is Ownable, ReentrancyGuard, Pausable {
             token: token,
             amount: amount,
             resolved: false,
-            won: false
+            won: false,
+            createdAt: block.timestamp
         });
 
         emit Staked(roundId, msg.sender, token, amount);
@@ -111,6 +115,21 @@ contract Quiza is Ownable, ReentrancyGuard, Pausable {
         }
 
         emit Resolved(roundId, round.player, won, payout);
+    }
+
+    // --- Claim Timeout ---
+    // Allows players to reclaim their stake if the backend fails to resolve within 2 hours
+    function claimTimeout(uint256 roundId) external nonReentrant {
+        Round storage round = rounds[roundId];
+        require(round.player == msg.sender, "Not your round");
+        require(!round.resolved, "Round already resolved");
+        require(block.timestamp >= round.createdAt + 2 hours, "Timeout not reached");
+
+        round.resolved = true;
+        // Refund the original stake to the player's balance
+        balances[round.player][round.token] += round.amount;
+
+        emit TimeoutClaimed(roundId, msg.sender, round.amount);
     }
 
     // --- Withdrawing ---
