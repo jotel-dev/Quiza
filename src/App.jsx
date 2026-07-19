@@ -199,6 +199,7 @@ export default function QuizaApp() {
         questionIds,
         submittedAnswers,
         address: walletAddress,
+        signer,
       });
 
       const stakeAmt = stakeInfo.amount ?? (stakeInfo.token === "cUSD" ? 0.001 : 0.01);
