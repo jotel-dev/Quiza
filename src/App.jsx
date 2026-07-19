@@ -69,6 +69,7 @@ export default function QuizaApp() {
   const [roundQuestions, setRoundQuestions] = useState([]);
   const [stakeInfo, setStakeInfo] = useState(null);
   const [signer, setSigner] = useState(null);
+  const [roundSecret, setRoundSecret] = useState(null);
   const [result, setResult] = useState(null);
   const [verifyError, setVerifyError] = useState(null);
   const [isDailyChallenge, setIsDailyChallenge] = useState(false);
@@ -172,6 +173,7 @@ export default function QuizaApp() {
       if (!res.ok) throw new Error("Failed to load questions");
       const data = await res.json();
       setRoundQuestions(data.questions || []);
+      setRoundSecret(data.secretToken || null);
       setScreen("play");
       navigate("/quiz");
     } catch (err) {
@@ -199,7 +201,7 @@ export default function QuizaApp() {
         questionIds,
         submittedAnswers,
         address: walletAddress,
-        signer,
+        secretToken: roundSecret,
       });
 
       const stakeAmt = stakeInfo.amount ?? (stakeInfo.token === "cUSD" ? 0.001 : 0.01);
