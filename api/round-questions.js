@@ -1,5 +1,5 @@
 import { createRequire } from "module";
-import { createHash } from "crypto";
+import { createHash, randomUUID } from "crypto";
 import { db } from "./firebaseAdmin.js";
 
 const require = createRequire(import.meta.url);
@@ -97,7 +97,17 @@ export default async function handler(req, res) {
     }
 
     const questions = selectQuestions(roundId, type, category, difficulty);
-    res.status(200).json({ questions });
+    
+    // Generate a secure, one-time token for this round to prevent griefing
+    const secretToken = randomUUID();
+    if (db) {
+      await db.collection("roundSecrets").doc(roundId.toString()).set({
+        token: secretToken,
+        createdAt: new Date()
+      });
+    }
+
+    res.status(200).json({ questions, secretToken });
   } catch (err) {
     console.error("round-questions error:", err);
     res.status(500).json({ error: "Failed to load questions" });
