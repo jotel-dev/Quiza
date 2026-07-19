@@ -1,4 +1,4 @@
-import { JsonRpcProvider, Wallet, Contract, ZeroAddress, parseEther, formatEther } from "ethers";
+import { JsonRpcProvider, Wallet, Contract, ZeroAddress, parseEther, formatEther, verifyMessage } from "ethers";
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
@@ -36,7 +36,7 @@ export function scoreRound(questionIds, submittedAnswers) {
   return { correctCount, total, won, correctAnswers };
 }
 
-export async function verifyAndResolve({ roundId, questionIds, submittedAnswers, address }) {
+export async function verifyAndResolve({ roundId, questionIds, submittedAnswers, address, signature }) {
   if (!VERIFIER_PRIVATE_KEY) {
     throw new Error("QUIZA_VERIFIER_PRIVATE_KEY is not set in environment");
   }
@@ -48,6 +48,25 @@ export async function verifyAndResolve({ roundId, questionIds, submittedAnswers,
   }
   if (!address || !address.startsWith("0x")) {
     throw new Error("Missing or invalid player address");
+  }
+  if (!signature) {
+    throw new Error("Missing signature");
+  }
+
+  const message = JSON.stringify({
+    roundId: roundId.toString(),
+    submittedAnswers
+  });
+
+  let recoveredAddress;
+  try {
+    recoveredAddress = verifyMessage(message, signature);
+  } catch (err) {
+    throw new Error("Invalid signature format");
+  }
+
+  if (recoveredAddress.toLowerCase() !== address.toLowerCase()) {
+    throw new Error("Signature verification failed: signer does not match player address");
   }
 
   const { correctCount, total, won, correctAnswers } = scoreRound(questionIds, submittedAnswers);
