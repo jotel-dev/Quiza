@@ -178,8 +178,16 @@ export async function verifyAndResolve({ roundId, questionIds, submittedAnswers,
   return { won, correctCount, total, txHash, correctAnswers };
 }
 
+import { rateLimit } from "./rate-limit.js";
+
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+  
+  // Rate limit to 10 requests per minute per IP
+  if (!rateLimit(req, res, 10, 60000)) {
+    return res.status(429).json({ error: "Too many requests. Please try again later." });
+  }
+
   try {
     const result = await verifyAndResolve(req.body);
     res.status(200).json(result);
