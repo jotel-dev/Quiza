@@ -79,8 +79,16 @@ export function selectQuestions(roundId, type = "standard", category = "Mixed", 
   return shuffle(selected, rng).map(q => publicView(q, rng));
 }
 
+import { rateLimit } from "./rate-limit.js";
+
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+  
+  // Rate limit to 10 requests per minute per IP
+  if (!rateLimit(req, res, 10, 60000)) {
+    return res.status(429).json({ error: "Too many requests. Please try again later." });
+  }
+
   try {
     const { roundId, type, category, difficulty, walletAddress } = req.body || {};
     if (!roundId) return res.status(400).json({ error: "Missing roundId" });
