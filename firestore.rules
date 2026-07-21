@@ -1,0 +1,12 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      // Allows anyone to read (e.g., fetching leaderboard)
+      allow read: if true;
+      // Completely blocks all client-side writes. 
+      // The backend (firebase-admin) bypasses these rules automatically.
+      allow write: if false;
+    }
+  }
+}
