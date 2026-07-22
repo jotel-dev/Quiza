@@ -153,6 +153,36 @@ export default function QuizaApp() {
     }
   };
 
+  const handleStartPractice = async () => {
+    setIsDailyChallenge(false);
+    const dummyRoundId = "practice-" + Date.now();
+    
+    setStakeInfo({ type: "practice", roundId: dummyRoundId, amount: 0, token: "FREE" });
+    
+    try {
+      const res = await fetch("/api/round-questions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          roundId: dummyRoundId,
+          type: "practice",
+          category: "Mixed",
+          difficulty: "Mixed",
+          walletAddress: walletAddress || "guest"
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to load practice questions");
+      const data = await res.json();
+      setRoundQuestions(data.questions || []);
+      setRoundSecret(data.secretToken || null);
+      setScreen("play");
+      navigate("/quiz");
+    } catch (err) {
+      console.error("Failed to load practice questions:", err);
+      alert("Could not load practice questions. Please try again.");
+    }
+  };
+
   const handleStaked = async (info) => {
     setStakeInfo(info);
     setSigner(info.signer);
@@ -182,12 +212,12 @@ export default function QuizaApp() {
     }
   };
 
-  const [verifyMessage, setVerifyMessage] = useState("Checking answers and confirming on-chain");
+  const [verifyMessage, setVerifyMessage] = useState("Checking answers...");
 
   const handleRoundComplete = async ({ questionIds, submittedAnswers }) => {
     setScreen("verifying");
     setVerifyError(null);
-    setVerifyMessage("Checking answers and confirming on-chain");
+    setVerifyMessage("Checking answers...");
 
     if (!stakeInfo || !stakeInfo.roundId) {
       setVerifyError("Missing round information. Please stake again to start a new round.");
@@ -195,17 +225,37 @@ export default function QuizaApp() {
     }
 
     try {
-      // Scoring and win determination happen entirely server-side.
-      const verified = await submitRoundForVerification({
-        roundId: stakeInfo.roundId,
-        questionIds,
-        submittedAnswers,
-        address: walletAddress,
-        secretToken: roundSecret,
-      });
+      let verified;
+      if (stakeInfo.type === "practice") {
+        const res = await fetch("/api/verify-practice", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            roundId: stakeInfo.roundId,
+            questionIds,
+            submittedAnswers,
+            address: walletAddress || "guest",
+            secretToken: roundSecret,
+          }),
+        });
+        if (!res.ok) {
+           const errData = await res.json();
+           throw new Error(errData.error || "Verification failed");
+        }
+        verified = await res.json();
+      } else {
+        setVerifyMessage("Checking answers and confirming on-chain");
+        verified = await submitRoundForVerification({
+          roundId: stakeInfo.roundId,
+          questionIds,
+          submittedAnswers,
+          address: walletAddress,
+          secretToken: roundSecret,
+        });
+      }
 
       const stakeAmt = stakeInfo.amount ?? (stakeInfo.token === "cUSD" ? 0.001 : 0.01);
-      const payout = verified.won ? (stakeAmt * WIN_MULTIPLIER).toFixed(4) : null;
+      const payout = (stakeInfo.type === "practice") ? null : (verified.won ? (stakeAmt * WIN_MULTIPLIER).toFixed(4) : null);
       const correct = verified.correctCount;
       const total = verified.total;
       setResult({
@@ -248,7 +298,7 @@ export default function QuizaApp() {
       setRecentGames((prev) => {
         const game = {
           id: Date.now().toString(),
-          type: isDailyChallenge ? "Daily Challenge" : "Standard Quiz",
+          type: stakeInfo.type === "practice" ? "Practice Round" : (isDailyChallenge ? "Daily Challenge" : "Standard Quiz"),
           score: correct * 10,
           won: verified.won,
           timestamp: Date.now()
@@ -350,7 +400,7 @@ export default function QuizaApp() {
           <AnimatePresence mode="wait">
             <Routes location={location} key={location.pathname}>
               <Route path="/" element={<PageTransition pathname={location.pathname}><WelcomeScreen /></PageTransition>} />
-              <Route path="/home" element={<PageTransition pathname={location.pathname}><HomeScreen onStartQuiz={handleStartQuiz} onStartDailyChallenge={handleStartDailyChallenge} stats={stats} recentGames={recentGames} walletAddress={walletAddress} onConnectWallet={handleConnectWallet} onDisconnectWallet={() => { setWalletAddress(null); setSigner(null); }} /></PageTransition>} />
+              <Route path="/home" element={<PageTransition pathname={location.pathname}><HomeScreen onStartQuiz={handleStartQuiz} onStartPractice={handleStartPractice} onStartDailyChallenge={handleStartDailyChallenge} stats={stats} recentGames={recentGames} walletAddress={walletAddress} onConnectWallet={handleConnectWallet} onDisconnectWallet={() => { setWalletAddress(null); setSigner(null); }} /></PageTransition>} />
               <Route path="/setup" element={<PageTransition pathname={location.pathname}><SetupScreen onContinue={handleSetupComplete} /></PageTransition>} />
               <Route path="/quiz" element={<PageTransition pathname={location.pathname}><QuizScreen roundQuestions={roundQuestions} onRoundComplete={handleRoundComplete} /></PageTransition>} />
               <Route path="/results" element={<PageTransition pathname={location.pathname}><ResultsScreen result={result} roundQuestions={roundQuestions} stakeInfo={stakeInfo} signer={signer} onPlayAgain={handlePlayAgain} /></PageTransition>} />
