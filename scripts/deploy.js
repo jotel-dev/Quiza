@@ -25,12 +25,15 @@ async function main() {
     throw new Error("Set QUIZA_VERIFIER_ADDRESS in your .env before deploying");
   }
 
+  const trustedForwarder = process.env.QUIZA_TRUSTED_FORWARDER || hre.ethers.ZeroAddress;
+
   console.log(`Deploying Quiza to ${network}...`);
   console.log(`  cUSD address: ${cUSD}`);
   console.log(`  Verifier address: ${verifierAddress}`);
+  console.log(`  Trusted Forwarder: ${trustedForwarder}`);
 
   const Quiza = await hre.ethers.getContractFactory("Quiza");
-  const quiza = await Quiza.deploy(cUSD, verifierAddress);
+  const quiza = await Quiza.deploy(cUSD, verifierAddress, trustedForwarder);
   await quiza.waitForDeployment();
 
   const address = await quiza.getAddress();
@@ -39,7 +42,7 @@ async function main() {
   console.log(`1. Update QUIZA_CONTRACT_ADDRESS.${network} in frontend/src/lib/quizaContract.js to: ${address}`);
   console.log(`2. Fund the contract's reward pool (fundPoolCelo / fundPoolToken) so payouts don't fail`);
   console.log(`3. Verify the contract:`);
-  console.log(`   npx hardhat verify --network ${network} ${address} ${cUSD} ${verifierAddress}`);
+  console.log(`   npx hardhat verify --network ${network} ${address} ${cUSD} ${verifierAddress} ${trustedForwarder}`);
 }
 
 main().catch((error) => {
