@@ -61,6 +61,9 @@ export function selectQuestions(roundId, type = "standard", category = "Mixed", 
     const mathHard = bank.questions.filter((q) => q.category === "Math" && q.difficulty === "hard");
     const web3Hard = bank.questions.filter((q) => q.category === "Web3" && q.difficulty === "hard");
     selected = [...shuffle(mathHard, rng).slice(0, 3), ...shuffle(web3Hard, rng).slice(0, 2)];
+  } else if (type === "practice") {
+    let pool = bank.questions;
+    selected = shuffle(pool, rng).slice(0, 5);
   } else {
     let pool = bank.questions;
     if (category && category !== "Mixed") pool = pool.filter(q => q.category === category);

@@ -50,7 +50,7 @@ function StatCard({ label, value, icon: Icon, iconColor, iconBg }) {
   );
 }
 
-export default function Home({ onStartQuiz, onStartDailyChallenge, stats, recentGames = [], walletAddress, onConnectWallet, onDisconnectWallet }) {
+export default function Home({ onStartQuiz, onStartPractice, onStartDailyChallenge, stats, recentGames = [], walletAddress, onConnectWallet, onDisconnectWallet }) {
   const [showWalletMenu, setShowWalletMenu] = useState(false);
   const isDailyChallengePlayed = stats?.lastDailyChallengeDate === new Date().toDateString();
 
@@ -122,7 +122,7 @@ export default function Home({ onStartQuiz, onStartDailyChallenge, stats, recent
             <p className="text-base sm:text-lg text-slate-500 mt-4 leading-relaxed max-w-lg">
               Play a round, stake CELO or cUSD, and become the trivia champion.
             </p>
-            <div className="flex items-center gap-4 mt-8">
+            <div className="flex flex-wrap items-center gap-4 mt-8">
               <motion.button
                 whileHover={{ scale: 1.02, y: -2 }}
                 whileTap={{ scale: 0.96 }}
@@ -140,6 +140,15 @@ export default function Home({ onStartQuiz, onStartDailyChallenge, stats, recent
                 className={`flex items-center gap-2 border text-base font-semibold px-6 py-3 rounded-xl shadow-sm transition ${isDailyChallengePlayed ? "bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
                 <Calendar size={18} />
                 {isDailyChallengePlayed ? "Come back tomorrow" : "Daily Challenge"}
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.96 }}
+                onClick={onStartPractice}
+                className="flex items-center gap-2 bg-slate-800 text-white text-base font-semibold px-6 py-3 rounded-xl shadow-lg shadow-slate-300 transition"
+              >
+                <FlaskConical size={18} />
+                Practice (Free)
               </motion.button>
             </div>
           </div>
