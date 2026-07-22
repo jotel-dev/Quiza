@@ -197,20 +197,22 @@ export default function Results({ result, roundQuestions, stakeInfo, signer, onP
             </div>
           </div>
 
-          <div className="mt-4 rounded-xl px-4 py-3.5 flex items-center justify-between" style={{ background: won ? "linear-gradient(90deg, #EEF2FF, #FEF3E2)" : "#F8FAFC" }}>
-            <div className="flex items-center gap-2.5">
-              <Coins size={18} className={won ? "text-[#F59E0B]" : "text-slate-400"} />
-              <div>
-                <p className="text-xs text-slate-400 font-medium">{won ? "You won" : "Stake"}</p>
-                <p className={`text-sm font-bold ${won ? "text-slate-800" : "text-slate-500"}`}>
-                  {won ? `+${payout} ${stakeInfo.token}` : `${stakeInfo.amount ?? (stakeInfo.token === "cUSD" ? 0.001 : 0.01)} ${stakeInfo.token} staked`}
-                </p>
+          {stakeInfo?.type !== "practice" && (
+            <div className="mt-4 rounded-xl px-4 py-3.5 flex items-center justify-between" style={{ background: won ? "linear-gradient(90deg, #EEF2FF, #FEF3E2)" : "#F8FAFC" }}>
+              <div className="flex items-center gap-2.5">
+                <Coins size={18} className={won ? "text-[#F59E0B]" : "text-slate-400"} />
+                <div>
+                  <p className="text-xs text-slate-400 font-medium">{won ? "You won" : "Stake"}</p>
+                  <p className={`text-sm font-bold ${won ? "text-slate-800" : "text-slate-500"}`}>
+                    {won ? `+${payout} ${stakeInfo.token}` : `${stakeInfo.amount ?? (stakeInfo.token === "cUSD" ? 0.001 : 0.01)} ${stakeInfo.token} staked`}
+                  </p>
+                </div>
               </div>
+              {won && <span className="text-[10px] font-bold text-[#4F46E5] bg-[#4F46E5]/10 px-2.5 py-1 rounded-full">1.5x</span>}
             </div>
-            {won && <span className="text-[10px] font-bold text-[#4F46E5] bg-[#4F46E5]/10 px-2.5 py-1 rounded-full">1.5x</span>}
-          </div>
+          )}
 
-          {won && (
+          {won && stakeInfo?.type !== "practice" && (
             <div className="mt-3">
               {withdrawState !== "done" ? (
                 <button
