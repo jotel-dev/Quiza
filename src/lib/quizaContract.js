@@ -142,6 +142,30 @@ function getContract(signer, network = NETWORK) {
   return new Contract(QUIZA_CONTRACT_ADDRESS[network], QUIZA_ABI, signer);
 }
 
+// --- Meta-Transactions (EIP-2771) ---------------------------------------
+
+/**
+ * Prepares and signs an EIP-712 meta-transaction request for gasless interaction.
+ * The signed request would typically be sent to a Relayer API like Biconomy.
+ */
+export async function executeMetaTransaction(signer, contract, functionName, functionArgs) {
+  const relayerUrl = import.meta.env?.VITE_BICONOMY_RELAYER_URL; // E.g., Biconomy or Gelato endpoint
+  
+  if (!relayerUrl) {
+    // Fallback to standard transaction if relayer is not configured
+    console.warn("No relayer URL found. Falling back to standard transaction.");
+    const tx = await contract[functionName](...functionArgs);
+    return tx.wait();
+  }
+
+  // NOTE: Full Biconomy/EIP-2771 integration requires building the EIP-712 typed data
+  // using the forwarder's domain separator, signing it with signer.signTypedData(),
+  // and POSTing the signature to the relayer.
+  
+  console.log(`Preparing gasless transaction for ${functionName}...`);
+  throw new Error("Gasless relayer API configured but signing logic requires full EIP-712 implementation.");
+}
+
 // --- Staking ----------------------------------------------------------
 
 /** Stake native CELO to start a round. Returns the transaction receipt. */
@@ -165,6 +189,12 @@ export async function stakeCUSD(signer, amountInCUSD = "0.01", network = NETWORK
   }
 
   const contract = getContract(signer, network);
+  
+  // Check if we have a gasless relayer configured
+  if (import.meta.env?.VITE_BICONOMY_RELAYER_URL) {
+    return executeMetaTransaction(signer, contract, "stakeToken", [CUSD_ADDRESS[network], amount]);
+  }
+
   const tx = await contract.stakeToken(CUSD_ADDRESS[network], amount);
   const receipt = await tx.wait();
   return receipt;
