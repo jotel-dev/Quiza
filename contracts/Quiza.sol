@@ -6,8 +6,9 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/metatx/ERC2771Context.sol";
 
-contract Quiza is Ownable, ReentrancyGuard, Pausable {
+contract Quiza is ERC2771Context, Ownable, ReentrancyGuard, Pausable {
     using SafeERC20 for IERC20;
 
     address public cUSD;
@@ -36,11 +37,11 @@ contract Quiza is Ownable, ReentrancyGuard, Pausable {
     event TimeoutClaimed(uint256 indexed roundId, address indexed player, uint256 amount);
 
     modifier onlyVerifier() {
-        require(msg.sender == verifier, "Caller is not the verifier");
+        require(_msgSender() == verifier, "Caller is not the verifier");
         _;
     }
 
-    constructor(address _cUSD, address _verifier) Ownable(msg.sender) {
+    constructor(address _cUSD, address _verifier, address _trustedForwarder) ERC2771Context(_trustedForwarder) Ownable(msg.sender) {
         require(_cUSD != address(0), "Invalid cUSD address");
         require(_verifier != address(0), "Invalid verifier address");
         cUSD = _cUSD;
@@ -68,7 +69,7 @@ contract Quiza is Ownable, ReentrancyGuard, Pausable {
         roundId = nextRoundId++;
 
         rounds[roundId] = Round({
-            player: msg.sender,
+            player: _msgSender(),
             token: address(0),
             amount: msg.value,
             resolved: false,
@@ -76,18 +77,18 @@ contract Quiza is Ownable, ReentrancyGuard, Pausable {
             createdAt: block.timestamp
         });
 
-        emit Staked(roundId, msg.sender, address(0), msg.value);
+        emit Staked(roundId, _msgSender(), address(0), msg.value);
     }
 
     function stakeToken(address token, uint256 amount) external whenNotPaused returns (uint256 roundId) {
         require(token == cUSD, "Only cUSD supported");
         require(amount > 0, "Stake amount must be > 0");
 
-        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+        IERC20(token).safeTransferFrom(_msgSender(), address(this), amount);
 
         roundId = nextRoundId++;
         rounds[roundId] = Round({
-            player: msg.sender,
+            player: _msgSender(),
             token: token,
             amount: amount,
             resolved: false,
@@ -95,7 +96,7 @@ contract Quiza is Ownable, ReentrancyGuard, Pausable {
             createdAt: block.timestamp
         });
 
-        emit Staked(roundId, msg.sender, token, amount);
+        emit Staked(roundId, _msgSender(), token, amount);
     }
 
     // --- Resolving ---
@@ -121,7 +122,7 @@ contract Quiza is Ownable, ReentrancyGuard, Pausable {
     // Allows players to reclaim their stake if the backend fails to resolve within 2 hours
     function claimTimeout(uint256 roundId) external nonReentrant {
         Round storage round = rounds[roundId];
-        require(round.player == msg.sender, "Not your round");
+        require(round.player == _msgSender(), "Not your round");
         require(!round.resolved, "Round already resolved");
         require(block.timestamp >= round.createdAt + 2 hours, "Timeout not reached");
 
@@ -129,32 +130,44 @@ contract Quiza is Ownable, ReentrancyGuard, Pausable {
         // Refund the original stake to the player's balance
         balances[round.player][round.token] += round.amount;
 
-        emit TimeoutClaimed(roundId, msg.sender, round.amount);
+        emit TimeoutClaimed(roundId, _msgSender(), round.amount);
     }
 
     // --- Withdrawing ---
     // Can be called even when paused
     function withdraw(address token) external nonReentrant {
-        uint256 amount = balances[msg.sender][token];
+        uint256 amount = balances[_msgSender()][token];
         require(amount > 0, "No balance to withdraw");
 
-        balances[msg.sender][token] = 0;
+        balances[_msgSender()][token] = 0;
 
         if (token == address(0)) {
-            (bool success, ) = msg.sender.call{value: amount}("");
+            (bool success, ) = _msgSender().call{value: amount}("");
             require(success, "CELO transfer failed");
         } else {
-            IERC20(token).safeTransfer(msg.sender, amount);
+            IERC20(token).safeTransfer(_msgSender(), amount);
         }
 
-        emit Withdrawn(msg.sender, token, amount);
+        emit Withdrawn(_msgSender(), token, amount);
     }
 
     // --- Admin Funding Pool ---
     function fundPoolCelo() external payable onlyOwner {}
 
     function fundPoolToken(uint256 amount) external onlyOwner {
-        IERC20(cUSD).safeTransferFrom(msg.sender, address(this), amount);
+        IERC20(cUSD).safeTransferFrom(_msgSender(), address(this), amount);
+    }
+
+    function _msgSender() internal view override(Context, ERC2771Context) returns (address) {
+        return ERC2771Context._msgSender();
+    }
+
+    function _msgData() internal view override(Context, ERC2771Context) returns (bytes calldata) {
+        return ERC2771Context._msgData();
+    }
+
+    function _contextSuffixLength() internal view override(Context, ERC2771Context) returns (uint256) {
+        return ERC2771Context._contextSuffixLength();
     }
 
     // To receive plain CELO
