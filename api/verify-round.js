@@ -111,7 +111,7 @@ export async function verifyAndResolve({ roundId, questionIds, submittedAnswers,
     let retries = 3;
     while (retries > 0) {
       try {
-        const tx = await contract.resolve(roundId, won);
+        const tx = await contract.resolve(roundId, won, correctCount);
         txHash = tx.hash;
         break; // We intentionally DO NOT await tx.wait() here
       } catch (err) {

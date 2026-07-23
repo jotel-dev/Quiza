@@ -47,6 +47,15 @@ export default function Results({ result, roundQuestions, stakeInfo, signer, onP
   const accuracy = Math.round((result.correct / result.total) * 100);
   const won = result.won;
   const payout = result.payout;
+  
+  // Calculate tiered multiplier based on score
+  const getMultiplier = (score) => {
+    if (score >= 10) return "2.0x";
+    if (score >= 8) return "1.5x";
+    if (score >= 7) return "1.2x";
+    return "1.0x";
+  };
+  const multiplier = getMultiplier(result.correct);
 
   const [showTrophy, setShowTrophy] = useState(false);
   const [withdrawState, setWithdrawState] = useState("idle");
@@ -207,7 +216,7 @@ export default function Results({ result, roundQuestions, stakeInfo, signer, onP
                 </p>
               </div>
             </div>
-            {won && <span className="text-[10px] font-bold text-[#4F46E5] bg-[#4F46E5]/10 px-2.5 py-1 rounded-full">1.5x</span>}
+            {won && <span className="text-[10px] font-bold text-[#4F46E5] bg-[#4F46E5]/10 px-2.5 py-1 rounded-full">{multiplier}</span>}
           </div>
 
           {won && (
