@@ -15,7 +15,6 @@ contract Quiza is ERC2771Context, Ownable, ReentrancyGuard, Pausable {
     address public verifier;
 
     uint256 public nextRoundId = 1;
-    uint256 public constant WIN_MULTIPLIER = 150; // 1.5x (basis 100)
     uint256 public constant MULTIPLIER_BASIS = 100;
 
     struct Round {
@@ -24,6 +23,7 @@ contract Quiza is ERC2771Context, Ownable, ReentrancyGuard, Pausable {
         uint256 amount;
         bool resolved;
         bool won;
+        uint8 score; // 0-10 correct answers
         uint256 createdAt;
     }
 
@@ -74,6 +74,7 @@ contract Quiza is ERC2771Context, Ownable, ReentrancyGuard, Pausable {
             amount: msg.value,
             resolved: false,
             won: false,
+            score: 0,
             createdAt: block.timestamp
         });
 
@@ -93,6 +94,7 @@ contract Quiza is ERC2771Context, Ownable, ReentrancyGuard, Pausable {
             amount: amount,
             resolved: false,
             won: false,
+            score: 0,
             createdAt: block.timestamp
         });
 
@@ -101,17 +103,30 @@ contract Quiza is ERC2771Context, Ownable, ReentrancyGuard, Pausable {
 
     // --- Resolving ---
     // Can be called even when paused so players don't get trapped
-    function resolve(uint256 roundId, bool won) external onlyVerifier nonReentrant {
+    function resolve(uint256 roundId, bool won, uint8 score) external onlyVerifier nonReentrant {
         Round storage round = rounds[roundId];
         require(round.player != address(0), "Round does not exist");
         require(!round.resolved, "Round already resolved");
+        require(score <= 10, "Invalid score");
 
         round.resolved = true;
         round.won = won;
+        round.score = score;
 
         uint256 payout = 0;
         if (won) {
-            payout = (round.amount * WIN_MULTIPLIER) / MULTIPLIER_BASIS;
+            // Tiered progressive payouts based on score
+            uint256 multiplier;
+            if (score >= 10) {
+                multiplier = 200; // 2.0x for perfect score
+            } else if (score >= 8) {
+                multiplier = 150; // 1.5x for 8-9 correct
+            } else if (score >= 7) {
+                multiplier = 120; // 1.2x for 7 correct
+            } else {
+                multiplier = 100; // 1.0x (shouldn't happen with win threshold)
+            }
+            payout = (round.amount * multiplier) / MULTIPLIER_BASIS;
             balances[round.player][round.token] += payout;
         }
 

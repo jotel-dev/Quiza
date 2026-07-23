@@ -15,7 +15,9 @@
     "deploy:testnet": "hardhat run scripts/deploy.js --network alfajores",
     "deploy:mainnet": "hardhat run scripts/deploy.js --network celo",
     "verify:testnet": "hardhat verify --network alfajores",
-    "verify:mainnet": "hardhat verify --network celo"
+    "verify:mainnet": "hardhat verify --network celo",
+    "fund:verifier:testnet": "hardhat run scripts/fund-verifier.js --network alfajores",
+    "fund:verifier:mainnet": "hardhat run scripts/fund-verifier.js --network celo"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^5.6.1",

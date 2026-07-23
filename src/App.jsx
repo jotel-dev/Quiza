@@ -309,8 +309,12 @@ export default function QuizaApp() {
       setScreen("results");
       navigate("/results");
     } catch (err) {
-      console.error(err);
-      setVerifyError(err.message || "Could not verify your round. Your stake is safe — please try again.");
+      console.error("Verification error:", err);
+      let errMsg = err.message || "Could not verify your round. Your stake is safe — please try again.";
+      if (errMsg.includes("insufficient funds") || errMsg.includes("INSUFFICIENT_FUNDS")) {
+        errMsg = "The backend verifier wallet has insufficient native CELO gas to resolve on-chain rounds. Please top up the verifier wallet.";
+      }
+      setVerifyError(errMsg);
     }
   };
 
