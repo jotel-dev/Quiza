@@ -219,12 +219,7 @@ export default function Results({ result, roundQuestions, stakeInfo, signer, onP
               </div>
               {won && <span className="text-[10px] font-bold text-[#4F46E5] bg-[#4F46E5]/10 px-2.5 py-1 rounded-full">{multiplier}</span>}
             </div>
-<<<<<<< HEAD
           )}
-=======
-            {won && <span className="text-[10px] font-bold text-[#4F46E5] bg-[#4F46E5]/10 px-2.5 py-1 rounded-full">{multiplier}</span>}
-          </div>
->>>>>>> bdbe39edb4ed8e64e3eef694557dcaf251b8d384
 
           {won && stakeInfo?.type !== "practice" && (
             <div className="mt-3">
