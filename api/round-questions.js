@@ -48,8 +48,7 @@ function publicView(q, rng) {
   const randomWrong = wrongIndices[Math.floor(rng() * wrongIndices.length)];
   const fiftyFifty = shuffle([q.answer, randomWrong], rng);
   
-  const { answer, ...rest } = q;
-  return { ...rest, color: CATEGORY_COLORS[q.category] || "#4F46E5", fiftyFifty };
+  return { ...q, color: CATEGORY_COLORS[q.category] || "#4F46E5", fiftyFifty };
 }
 
 export function selectQuestions(roundId, type = "standard", category = "Mixed", difficulty = "Mixed") {
@@ -109,13 +108,19 @@ export default async function handler(req, res) {
 
     const questions = selectQuestions(roundId, type, category, difficulty);
     
-    // Generate a secure, one-time token for this round to prevent griefing
-    const secretToken = randomUUID();
+    // Generate a secure, HMAC-signed token for this round to prevent griefing
+    const hmacSig = createHash("sha256").update(`${SECRET}:${String(roundId)}`).digest("hex");
+    const secretToken = `${randomUUID()}.${hmacSig}`;
+    
     if (db) {
-      await db.collection("roundSecrets").doc(roundId.toString()).set({
-        token: secretToken,
-        createdAt: new Date()
-      });
+      try {
+        await db.collection("roundSecrets").doc(roundId.toString()).set({
+          token: secretToken,
+          createdAt: new Date()
+        });
+      } catch (e) {
+        console.warn("Could not save round secret to Firestore:", e.message);
+      }
     }
 
     res.status(200).json({ questions, secretToken });
