@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
-import { Loader2, Home, Grid3x3, Timer, Trophy, Gift, Award, Wallet, User, Settings } from "lucide-react";
+import { Loader2, Home, Grid3x3, Timer, Trophy, Gift, Award, Wallet, User, Settings, Volume2, VolumeX } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { isMuted, toggleMute } from "./lib/sound";
 
 const nav = [
   { icon: Home, label: "Home" },
@@ -73,6 +74,7 @@ export default function QuizaApp() {
   const [result, setResult] = useState(null);
   const [verifyError, setVerifyError] = useState(null);
   const [isDailyChallenge, setIsDailyChallenge] = useState(false);
+  const [soundMuted, setSoundMuted] = useState(() => isMuted());
   const [stats, setStats] = useState(() => {
     const loaded = loadPersistedState()?.stats;
     return loaded ? { 
@@ -400,6 +402,15 @@ export default function QuizaApp() {
       )}
 
       <main className="flex-1 relative pb-20 lg:pb-0 overflow-x-hidden">
+        {/* Floating Audio Mute / Unmute Button */}
+        <button
+          onClick={() => setSoundMuted(toggleMute())}
+          title={soundMuted ? "Unmute Audio" : "Mute Audio"}
+          className="fixed top-4 right-4 z-40 w-10 h-10 rounded-full bg-white/80 backdrop-blur-md border border-slate-200/80 shadow-sm text-slate-600 flex items-center justify-center hover:bg-slate-100 transition active:scale-95"
+        >
+          {soundMuted ? <VolumeX size={18} className="text-slate-400" /> : <Volume2 size={18} className="text-[#4F46E5]" />}
+        </button>
+
         <ErrorBoundary>
           <AnimatePresence mode="wait">
             <Routes location={location} key={location.pathname}>
