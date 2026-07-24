@@ -111,7 +111,7 @@ export async function verifyAndResolve({ roundId, questionIds, submittedAnswers,
     let retries = 3;
     while (retries > 0) {
       try {
-        const tx = await contract.resolve(roundId, won);
+        const tx = await contract.resolve(roundId, won, correctCount);
         txHash = tx.hash;
         break; // We intentionally DO NOT await tx.wait() here
       } catch (err) {
@@ -120,6 +120,13 @@ export async function verifyAndResolve({ roundId, questionIds, submittedAnswers,
         if (msg.includes("Round already resolved")) {
           console.warn(`Round ${roundId} is already resolved. Skipping on-chain tx.`);
           break;
+        } else if (code === "INSUFFICIENT_FUNDS" || msg.includes("insufficient funds")) {
+          let verifierAddr = "Verifier Wallet";
+          try {
+            verifierAddr = await verifierWallet.getAddress();
+          } catch (e) {}
+          console.error(`[Quiza] Verifier wallet (${verifierAddr}) is out of gas (INSUFFICIENT_FUNDS).`);
+          throw new Error("The backend verifier wallet has insufficient native CELO gas to complete transaction verification. Please top up the verifier account.");
         } else if (code === "REPLACEMENT_UNDERPRICED" || code === "NONCE_EXPIRED" || msg.includes("nonce") || msg.includes("replacement transaction underpriced")) {
           console.warn(`Nonce issue detected, retrying... (${retries} left). Error: ${code}`);
           retries--;
