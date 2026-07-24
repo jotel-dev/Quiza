@@ -100,25 +100,39 @@ export async function verifyAndResolve({ roundId, questionIds, submittedAnswers,
     ["function rounds(uint256 roundId) external view returns (address player, address token, uint256 amount, bool resolved, bool won, uint256 createdAt)"]
   ];
 
+  const provider = verifierWallet.provider || new JsonRpcProvider(CELO_NETWORKS[NETWORK].rpcUrls[0]);
+  let lastReadError = null;
+
   for (const abiCandidate of ABIS_TO_TRY) {
-    try {
-      const tempContract = new Contract(QUIZA_CONTRACT_ADDRESS[NETWORK], abiCandidate, verifierWallet);
-      round = await tempContract.rounds(roundId);
-      if (round && round.player !== ZeroAddress) break;
-    } catch (e) {
-      // Try next ABI
+    let retries = 3;
+    while (retries > 0) {
+      try {
+        const tempContract = new Contract(QUIZA_CONTRACT_ADDRESS[NETWORK], abiCandidate, provider);
+        round = await tempContract.rounds(roundId);
+        if (round && round.player !== ZeroAddress) break;
+      } catch (e) {
+        lastReadError = e;
+        const msg = e?.message || "";
+        const isDecodeError = e?.code === "BAD_DATA" || msg.includes("could not decode") || msg.includes("data length");
+        if (isDecodeError) {
+          // ABI mismatch, try next candidate immediately
+          break;
+        }
+        // RPC network timeout / error, retry candidate
+        retries--;
+        if (retries > 0) {
+          await new Promise((r) => setTimeout(r, 1000));
+        }
+      }
     }
+    if (round && round.player !== ZeroAddress) break;
   }
 
   if (!round) {
-    try {
-      round = await contract.rounds(roundId);
-    } catch (err) {
-      throw new Error(`Could not read round ${roundId} on-chain: ${err.message}`);
-    }
+    throw new Error(`Could not read round ${roundId} on-chain: ${lastReadError?.message || "Unknown error"}`);
   }
 
-  if (!round || round.player === ZeroAddress) {
+  if (round.player === ZeroAddress) {
     throw new Error("Round does not exist on-chain");
   }
   if (round.player.toLowerCase() !== address.toLowerCase()) {
@@ -135,12 +149,12 @@ export async function verifyAndResolve({ roundId, questionIds, submittedAnswers,
       try {
         let tx;
         try {
-          tx = await contract["resolve(uint256,bool,uint8)"](roundId, won, correctCount);
+          tx = await contract["resolve(uint256,bool)"](roundId, won);
         } catch (resolveErr) {
           const code = resolveErr?.code || "";
           const msg = resolveErr?.message || "";
           if (code === "CALL_EXCEPTION" || code === "UNSUPPORTED_OPERATION" || msg.includes("no matching function") || msg.includes("missing revert data") || msg.includes("invalid fragment")) {
-            tx = await contract["resolve(uint256,bool)"](roundId, won);
+            tx = await contract["resolve(uint256,bool,uint8)"](roundId, won, correctCount);
           } else {
             throw resolveErr;
           }
@@ -163,10 +177,7 @@ export async function verifyAndResolve({ roundId, questionIds, submittedAnswers,
         } else if (code === "REPLACEMENT_UNDERPRICED" || code === "NONCE_EXPIRED" || msg.includes("nonce") || msg.includes("replacement transaction underpriced")) {
           console.warn(`Nonce issue detected, retrying... (${retries} left). Error: ${code}`);
           retries--;
-          if (retries === 0) throw err;
-          // Invalidate the cached nonce to force fetching from the network again
-          if (verifierWallet.reset) verifierWallet.reset();
-          await new Promise(r => setTimeout(r, 800)); // small delay
+          await new Promise((r) => setTimeout(r, 2000));
         } else {
           // Any other revert (e.g. "Round does not exist") is a real failure — do not hide it.
           throw err;
