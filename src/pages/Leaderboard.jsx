@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trophy, Medal, Target, Flame, ChevronRight, Loader2, Search } from "lucide-react";
+import { Trophy, Medal, Target, Flame, ChevronRight, Loader2, Search, Share2 } from "lucide-react";
+import ShareModal from "../components/ShareModal";
 
 const getMedalIcon = (index) => {
   if (index === 0) return <span className="text-2xl drop-shadow-md">🥇</span>;
@@ -14,6 +15,7 @@ export default function Leaderboard({ walletAddress }) {
   const [loading, setLoading] = useState(true);
   const [currentUserRank, setCurrentUserRank] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
+  const [shareData, setShareData] = useState(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -173,19 +175,43 @@ export default function Leaderboard({ walletAddress }) {
 
       {/* Pinned Current User Card (if outside top 20 or viewing the list) */}
       {currentUserRank && (
-        <div className="fixed bottom-24 lg:bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-xl bg-white rounded-2xl shadow-[0_10px_50px_rgba(0,0,0,0.15)] border border-slate-200/50 p-4 z-10 flex items-center">
-          <div className="w-10 text-center font-bold text-[#4F46E5] mr-3">
-            #{currentUserRank.rank}
+        <div className="fixed bottom-24 lg:bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-xl bg-white rounded-2xl shadow-[0_10px_50px_rgba(0,0,0,0.15)] border border-slate-200/50 p-4 z-10 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 text-center font-bold text-[#4F46E5]">
+              #{currentUserRank.rank}
+            </div>
+            <div>
+              <h3 className="font-bold text-sm">Your Ranking</h3>
+              <p className="text-xs text-slate-400">Keep playing to climb higher!</p>
+            </div>
           </div>
-          <div className="flex-1">
-            <h3 className="font-bold text-sm">Your Ranking</h3>
-            <p className="text-xs text-slate-400">Keep playing to climb higher!</p>
-          </div>
-          <div className="text-right">
-            <div className="font-bold text-[#4F46E5]">{currentUserRank.totalPoints} pts</div>
+          
+          <div className="flex items-center gap-3">
+            <div className="text-right">
+              <div className="font-bold text-[#4F46E5]">{currentUserRank.totalPoints} pts</div>
+            </div>
+            <button
+              onClick={() => setShareData({
+                username: currentUserRank.username || walletAddress?.slice(0, 6) + "...",
+                rank: currentUserRank.rank,
+                score: currentUserRank.correctAnswers || "0",
+                total: currentUserRank.totalQuestions || "0",
+                type: "leaderboard"
+              })}
+              className="flex items-center gap-1.5 bg-[#4F46E5] text-white text-xs font-semibold px-3 py-2 rounded-xl shadow-md shadow-indigo-200 hover:opacity-90 transition active:scale-95"
+            >
+              <Share2 size={13} />
+              Share
+            </button>
           </div>
         </div>
       )}
+
+      <ShareModal
+        isOpen={!!shareData}
+        onClose={() => setShareData(null)}
+        shareData={shareData}
+      />
     </div>
   );
 }
