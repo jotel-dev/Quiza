@@ -3,6 +3,7 @@ import { Trophy, RotateCcw, Share2, Check, X, Target, Coins, Loader2 } from "luc
 import { JsonRpcProvider } from "ethers";
 import { withdrawWinnings, getBalance, CUSD_ADDRESS, NETWORK, CELO_NETWORKS } from "../lib/quizaContract";
 import ShareModal from "../components/ShareModal";
+import { playChaChing } from "../lib/sound";
 
 function useCountUp(target, durationMs = 900, start = true) {
   const [value, setValue] = useState(0);
@@ -73,7 +74,6 @@ export default function Results({ result, roundQuestions, stakeInfo, signer, onP
   }, []);
 
   // For winning rounds, confirm the on-chain payout has settled before enabling withdrawal.
-  // resolve() is broadcast but not awaited, so the balance may take a moment to reflect.
   useEffect(() => {
     if (!won || !stakeInfo || !signer) return;
 
@@ -90,16 +90,16 @@ export default function Results({ result, roundQuestions, stakeInfo, signer, onP
         const balance = await getBalance(provider, await signer.getAddress(), tokenAddress, NETWORK);
         if (!cancelled && balance > 0n) {
           setPayoutReady(true);
+          playChaChing();
           return;
         }
       } catch {
-        // ignore transient RPC errors and keep polling
+        // ignore transient RPC errors
       }
       attempts += 1;
       if (!cancelled && attempts < MAX_ATTEMPTS) {
         setTimeout(check, 3000);
       } else if (!cancelled) {
-        // Give up waiting; let the user try withdrawing anyway (clear error if it fails).
         setPayoutReady(true);
       }
     };
@@ -117,6 +117,7 @@ export default function Results({ result, roundQuestions, stakeInfo, signer, onP
       const tokenAddress = stakeInfo.token === "CELO" ? "0x0000000000000000000000000000000000000000" : CUSD_ADDRESS[NETWORK];
       await withdrawWinnings(signer, tokenAddress, NETWORK);
       setWithdrawState("done");
+      playChaChing();
     } catch (err) {
       console.error("Withdraw error:", err);
       let errMsg = err?.message || "Withdrawal failed";
@@ -124,11 +125,8 @@ export default function Results({ result, roundQuestions, stakeInfo, signer, onP
       if (errMsg.toLowerCase().includes("user rejected") || errMsg.includes("4001")) {
         errMsg = "Transaction was rejected in your wallet. Please try again.";
       } else if (errMsg.includes("could not coalesce error")) {
-        // Ethers v6 wraps RPC errors in a huge JSON blob
         const match = errMsg.match(/"message":\s*"([^"]+)"/);
         errMsg = match ? match[1] : "Network error. Please try again.";
-        
-        // Handle specific DNS/Network failures common on mobile
         if (errMsg.includes("Unable to resolve host") || errMsg.includes("Failed to fetch")) {
           errMsg = "Network connection failed. Please check your internet connection and try again.";
         }
