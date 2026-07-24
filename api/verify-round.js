@@ -160,7 +160,16 @@ export async function verifyAndResolve({ roundId, questionIds, submittedAnswers,
           }
         }
         txHash = tx.hash;
-        break; // We intentionally DO NOT await tx.wait() here
+        try {
+          // Wait up to 4 seconds for block confirmation on Celo (~1s block time)
+          await Promise.race([
+            tx.wait(1),
+            new Promise((r) => setTimeout(r, 4000))
+          ]);
+        } catch (waitErr) {
+          console.warn("Tx submitted, receipt wait timed out or failed:", waitErr.message);
+        }
+        break; // We proceed with return after waiting for confirmation
       } catch (err) {
         const msg = err?.message || "";
         const code = err?.code || "";

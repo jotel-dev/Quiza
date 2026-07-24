@@ -87,8 +87,19 @@ export default function Results({ result, roundQuestions, stakeInfo, signer, onP
 
     const check = async () => {
       try {
-        const balance = await getBalance(provider, await signer.getAddress(), tokenAddress, NETWORK);
-        if (!cancelled && balance > 0n) {
+        const playerAddr = await signer.getAddress();
+        const balance = await getBalance(provider, playerAddr, tokenAddress, NETWORK);
+
+        let roundResolved = false;
+        if (stakeInfo.roundId) {
+          try {
+            const contract = new Contract(QUIZA_CONTRACT_ADDRESS[NETWORK], QUIZA_ABI, provider);
+            const r = await contract.rounds(stakeInfo.roundId);
+            if (r && r.resolved) roundResolved = true;
+          } catch (e) {}
+        }
+
+        if (!cancelled && (balance > 0n || roundResolved)) {
           setPayoutReady(true);
           playChaChing();
           return;
@@ -98,7 +109,7 @@ export default function Results({ result, roundQuestions, stakeInfo, signer, onP
       }
       attempts += 1;
       if (!cancelled && attempts < MAX_ATTEMPTS) {
-        setTimeout(check, 3000);
+        setTimeout(check, 2000);
       } else if (!cancelled) {
         setPayoutReady(true);
       }
@@ -115,6 +126,25 @@ export default function Results({ result, roundQuestions, stakeInfo, signer, onP
     setWithdrawState("withdrawing");
     try {
       const tokenAddress = stakeInfo.token === "CELO" ? "0x0000000000000000000000000000000000000000" : CUSD_ADDRESS[NETWORK];
+      const provider = new JsonRpcProvider(CELO_NETWORKS[NETWORK].rpcUrls[0]);
+      const playerAddr = await signer.getAddress();
+      const balance = await getBalance(provider, playerAddr, tokenAddress, NETWORK);
+
+      if (balance === 0n) {
+        let roundResolved = false;
+        if (stakeInfo?.roundId) {
+          try {
+            const contract = new Contract(QUIZA_CONTRACT_ADDRESS[NETWORK], QUIZA_ABI, provider);
+            const r = await contract.rounds(stakeInfo.roundId);
+            if (r && r.resolved) roundResolved = true;
+          } catch (e) {}
+        }
+
+        if (!roundResolved) {
+          throw new Error("Your payout is still settling on-chain. Please wait a few seconds and try again.");
+        }
+      }
+
       await withdrawWinnings(signer, tokenAddress, NETWORK);
       setWithdrawState("done");
       playChaChing();
@@ -124,14 +154,16 @@ export default function Results({ result, roundQuestions, stakeInfo, signer, onP
       
       if (errMsg.toLowerCase().includes("user rejected") || errMsg.includes("4001")) {
         errMsg = "Transaction was rejected in your wallet. Please try again.";
+      } else if (errMsg.includes("No balance to withdraw") || errMsg.includes("still settling")) {
+        errMsg = "Your payout is still settling on-chain. Please wait a few seconds and try again.";
       } else if (errMsg.includes("could not coalesce error")) {
         const match = errMsg.match(/"message":\s*"([^"]+)"/);
         errMsg = match ? match[1] : "Network error. Please try again.";
         if (errMsg.includes("Unable to resolve host") || errMsg.includes("Failed to fetch")) {
           errMsg = "Network connection failed. Please check your internet connection and try again.";
         }
-      } else if (errMsg.length > 100) {
-        errMsg = "Transaction failed. Please check your connection and try again.";
+      } else if (errMsg.length > 150) {
+        errMsg = "Transaction failed. Please check your network connection and try again.";
       }
       
       setWithdrawError(errMsg);
