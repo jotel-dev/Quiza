@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Trophy, RotateCcw, Share2, Check, X, Target, Coins, Loader2 } from "lucide-react";
 import { JsonRpcProvider } from "ethers";
 import { withdrawWinnings, getBalance, CUSD_ADDRESS, NETWORK, CELO_NETWORKS } from "../lib/quizaContract";
+import ShareModal from "../components/ShareModal";
 
 function useCountUp(target, durationMs = 900, start = true) {
   const [value, setValue] = useState(0);
@@ -62,6 +63,7 @@ export default function Results({ result, roundQuestions, stakeInfo, signer, onP
   const [withdrawError, setWithdrawError] = useState(null);
   const [payoutReady, setPayoutReady] = useState(!won);
   const [showReview, setShowReview] = useState(false);
+  const [isShareOpen, setIsShareOpen] = useState(false);
   const scoreCount = useCountUp(result.correct * 10, 1000, showTrophy);
   const accuracyCount = useCountUp(accuracy, 1000, showTrophy);
 
@@ -139,18 +141,8 @@ export default function Results({ result, roundQuestions, stakeInfo, signer, onP
     }
   };
 
-  const handleShare = async () => {
-    const text = `I just scored ${result.correct}/${result.total} on Quiza! ${won ? "I won " + payout + " " + stakeInfo.token + "!" : "Better luck next time!"}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: "Quiza Score", text });
-      } catch {
-        // user cancelled
-      }
-    } else {
-      await navigator.clipboard.writeText(text);
-      alert("Score copied to clipboard!");
-    }
+  const handleShare = () => {
+    setIsShareOpen(true);
   };
 
   return (
@@ -273,28 +265,29 @@ export default function Results({ result, roundQuestions, stakeInfo, signer, onP
                 <X size={18} />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-5 space-y-6">
-              {roundQuestions?.map((q, idx) => {
-                const submitted = result.submittedAnswers?.[idx];
-                const correct = result.correctAnswers?.[idx];
-                const isCorrect = submitted === correct;
-                
+            <div className="p-5 overflow-y-auto space-y-4">
+              {roundQuestions.map((q, idx) => {
+                const submitted = result.submittedAnswers[idx];
+                const correct = result.correctAnswers[idx];
+
                 return (
-                  <div key={idx} className="border border-slate-100 rounded-2xl p-4 bg-slate-50/50">
-                    <p className="text-sm font-bold text-slate-800 mb-3">{idx + 1}. {q.question}</p>
+                  <div key={q.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+                    <p className="text-sm font-bold text-slate-800 mb-3">{idx + 1}. {q.prompt}</p>
                     <div className="space-y-2">
                       {q.options.map((opt, optIdx) => {
+                        const isCorrectOpt = optIdx === correct;
+                        const isUserSelected = optIdx === submitted;
                         let btnClass = "border-slate-200 bg-white text-slate-600";
                         let icon = null;
-                        
-                        if (optIdx === correct) {
-                          btnClass = "border-emerald-500 bg-emerald-50 text-emerald-700 shadow-[0_0_0_2px_rgba(16,185,129,0.15)]";
+
+                        if (isCorrectOpt) {
+                          btnClass = "border-emerald-300 bg-emerald-50 text-emerald-700 font-bold";
                           icon = <Check size={16} className="text-emerald-600" />;
-                        } else if (optIdx === submitted && !isCorrect) {
-                          btnClass = "border-red-400 bg-red-50 text-red-700 shadow-[0_0_0_2px_rgba(239,68,68,0.15)]";
-                          icon = <X size={16} className="text-red-600" />;
+                        } else if (isUserSelected && !isCorrectOpt) {
+                          btnClass = "border-red-300 bg-red-50 text-red-600 font-bold";
+                          icon = <X size={16} className="text-red-500" />;
                         }
-                        
+
                         return (
                           <div key={optIdx} className={`flex items-center justify-between px-3.5 py-3 rounded-xl border text-sm font-semibold transition-all ${btnClass}`}>
                             <span>{opt}</span>
@@ -303,11 +296,6 @@ export default function Results({ result, roundQuestions, stakeInfo, signer, onP
                         );
                       })}
                     </div>
-                    {submitted === -1 && (
-                      <div className="mt-3 inline-block px-3 py-1.5 bg-orange-50 border border-orange-200 rounded-lg">
-                        <p className="text-xs font-bold text-orange-600">Skipped or out of time</p>
-                      </div>
-                    )}
                   </div>
                 );
               })}
@@ -315,6 +303,20 @@ export default function Results({ result, roundQuestions, stakeInfo, signer, onP
           </div>
         </div>
       )}
+
+      <ShareModal
+        isOpen={isShareOpen}
+        onClose={() => setIsShareOpen(false)}
+        shareData={{
+          score: result.correct,
+          total: result.total,
+          multiplier,
+          payout,
+          token: stakeInfo?.token || "CELO",
+          won,
+          type: "game",
+        }}
+      />
     </div>
   );
 }
