@@ -91,11 +91,33 @@ export async function verifyAndResolve({ roundId, questionIds, submittedAnswers,
 
   // Confirm the round actually exists on-chain and belongs to this player.
   let round;
-  try {
-    round = await contract.rounds(roundId);
-  } catch (err) {
-    throw new Error(`Could not read round ${roundId} on-chain: ${err.message}`);
+  const ABIS_TO_TRY = [
+    // 5-field ABI (deployed mainnet contract)
+    ["function rounds(uint256 roundId) external view returns (address player, address token, uint256 amount, bool resolved, bool won)"],
+    // 7-field ABI (newest contract with score & createdAt)
+    ["function rounds(uint256 roundId) external view returns (address player, address token, uint256 amount, bool resolved, bool won, uint8 score, uint256 createdAt)"],
+    // 6-field ABI (with createdAt)
+    ["function rounds(uint256 roundId) external view returns (address player, address token, uint256 amount, bool resolved, bool won, uint256 createdAt)"]
+  ];
+
+  for (const abiCandidate of ABIS_TO_TRY) {
+    try {
+      const tempContract = new Contract(QUIZA_CONTRACT_ADDRESS[NETWORK], abiCandidate, verifierWallet);
+      round = await tempContract.rounds(roundId);
+      if (round && round.player !== ZeroAddress) break;
+    } catch (e) {
+      // Try next ABI
+    }
   }
+
+  if (!round) {
+    try {
+      round = await contract.rounds(roundId);
+    } catch (err) {
+      throw new Error(`Could not read round ${roundId} on-chain: ${err.message}`);
+    }
+  }
+
   if (!round || round.player === ZeroAddress) {
     throw new Error("Round does not exist on-chain");
   }
@@ -111,7 +133,18 @@ export async function verifyAndResolve({ roundId, questionIds, submittedAnswers,
     let retries = 3;
     while (retries > 0) {
       try {
-        const tx = await contract.resolve(roundId, won, correctCount);
+        let tx;
+        try {
+          tx = await contract["resolve(uint256,bool,uint8)"](roundId, won, correctCount);
+        } catch (resolveErr) {
+          const code = resolveErr?.code || "";
+          const msg = resolveErr?.message || "";
+          if (code === "CALL_EXCEPTION" || code === "UNSUPPORTED_OPERATION" || msg.includes("no matching function") || msg.includes("missing revert data") || msg.includes("invalid fragment")) {
+            tx = await contract["resolve(uint256,bool)"](roundId, won);
+          } else {
+            throw resolveErr;
+          }
+        }
         txHash = tx.hash;
         break; // We intentionally DO NOT await tx.wait() here
       } catch (err) {
