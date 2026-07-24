@@ -47,8 +47,9 @@ export const QUIZA_ABI = [
   "function stakeToken(address token, uint256 amount) external returns (uint256 roundId)",
   "function withdraw(address token) external",
   "function resolve(uint256 roundId, bool won, uint8 score) external",
+  "function resolve(uint256 roundId, bool won) external",
   "function balances(address player, address token) external view returns (uint256)",
-  "function rounds(uint256 roundId) external view returns (address player, address token, uint256 amount, bool resolved, bool won, uint8 score, uint256 createdAt)",
+  "function rounds(uint256 roundId) external view returns (address player, address token, uint256 amount, bool resolved, bool won)",
   "event Staked(uint256 indexed roundId, address indexed player, address token, uint256 amount)",
   "event Resolved(uint256 indexed roundId, address indexed player, bool won, uint256 payout)",
 ];
