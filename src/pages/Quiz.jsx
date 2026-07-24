@@ -1,6 +1,7 @@
  import React, { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Clock, X, Check, SkipForward, Zap } from "lucide-react";
+import { playPop, playTick, triggerHaptic } from "../lib/sound";
 
 const TIME_PER_QUESTION = 15;
 
@@ -59,15 +60,14 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
   useEffect(() => {
     if (status !== "active") return;
     if (timeLeft <= 0) {
+      triggerHaptic("incorrect");
       setStatus("selected");
       setSelected(-1);
-      // NOTE: intentionally no cleanup returned here. Returning a cleanup tied
-      // to this branch would clear this exact timeout the instant setStatus()
-      // above causes this effect to re-run (status is a dependency), because
-      // React calls the previous run's cleanup before the next run. That was
-      // the bug: the round froze at 0s because goNext(-1) never fired.
       setTimeout(() => goNext(-1), 1000);
       return;
+    }
+    if (timeLeft <= 5) {
+      playTick();
     }
     const t = setTimeout(() => setTimeLeft((s) => s - 1), 1000);
     return () => clearTimeout(t);
@@ -75,6 +75,12 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
 
   const handleAnswer = (idx) => {
     if (status !== "active" || hasAdvanced.current || !q) return;
+    playPop();
+    if (q && q.answer !== undefined && idx !== q.answer) {
+      triggerHaptic("incorrect");
+    } else {
+      triggerHaptic("tap");
+    }
     setSelected(idx);
     setStatus("selected");
     setTimeout(() => goNext(idx), 600);
@@ -82,6 +88,7 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
 
   const handleSkip = () => {
     if (status !== "active" || hasAdvanced.current || !q) return;
+    triggerHaptic("incorrect");
     setStatus("selected");
     setSelected(-1);
     setTimeout(() => goNext(-1), 600);
@@ -89,6 +96,7 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
 
   const handleFiftyFifty = () => {
     if (status !== "active" || !fiftyFiftyAvailable || !q || !q.fiftyFifty) return;
+    playPop();
     const toHide = [0, 1, 2, 3].filter(idx => !q.fiftyFifty.includes(idx));
     setHiddenOptions(toHide);
     setFiftyFiftyAvailable(false);
@@ -96,6 +104,7 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
 
   const handleAddTime = () => {
     if (status !== "active" || !addTimeAvailable) return;
+    playPop();
     setTimeLeft(t => t + 10);
     setAddTimeAvailable(false);
   };
