@@ -35,6 +35,7 @@ contract Quiza is ERC2771Context, Ownable, ReentrancyGuard, Pausable {
     event Withdrawn(address indexed player, address token, uint256 amount);
     event VerifierUpdated(address newVerifier);
     event TimeoutClaimed(uint256 indexed roundId, address indexed player, uint256 amount);
+    event PoolWithdrawn(address indexed owner, address token, uint256 amount);
 
     modifier onlyVerifier() {
         require(_msgSender() == verifier, "Caller is not the verifier");
@@ -166,11 +167,26 @@ contract Quiza is ERC2771Context, Ownable, ReentrancyGuard, Pausable {
         emit Withdrawn(_msgSender(), token, amount);
     }
 
-    // --- Admin Funding Pool ---
+    // --- Admin Funding & Pool Management ---
     function fundPoolCelo() external payable onlyOwner {}
 
     function fundPoolToken(uint256 amount) external onlyOwner {
         IERC20(cUSD).safeTransferFrom(_msgSender(), address(this), amount);
+    }
+
+    function withdrawPoolCelo(uint256 amount) external onlyOwner nonReentrant {
+        require(amount > 0, "Amount must be > 0");
+        require(address(this).balance >= amount, "Insufficient CELO contract balance");
+        (bool success, ) = owner().call{value: amount}("");
+        require(success, "CELO withdrawal failed");
+        emit PoolWithdrawn(owner(), address(0), amount);
+    }
+
+    function withdrawPoolToken(address token, uint256 amount) external onlyOwner nonReentrant {
+        require(amount > 0, "Amount must be > 0");
+        require(token != address(0), "Invalid token address");
+        IERC20(token).safeTransfer(owner(), amount);
+        emit PoolWithdrawn(owner(), token, amount);
     }
 
     function _msgSender() internal view override(Context, ERC2771Context) returns (address) {

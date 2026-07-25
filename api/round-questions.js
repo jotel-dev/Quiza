@@ -48,7 +48,9 @@ function publicView(q, rng) {
   const randomWrong = wrongIndices[Math.floor(rng() * wrongIndices.length)];
   const fiftyFifty = shuffle([q.answer, randomWrong], rng);
   
-  return { ...q, color: CATEGORY_COLORS[q.category] || "#4F46E5", fiftyFifty };
+  // Strip answer from question object so client cannot cheat
+  const { answer, ...publicQuestion } = q;
+  return { ...publicQuestion, color: CATEGORY_COLORS[q.category] || "#4F46E5", fiftyFifty };
 }
 
 export function selectQuestions(roundId, type = "standard", category = "Mixed", difficulty = "Mixed") {

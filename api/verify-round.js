@@ -206,8 +206,9 @@ export async function verifyAndResolve({ roundId, questionIds, submittedAnswers,
           console.error(`[Quiza] Verifier wallet (${verifierAddr}) is out of gas (INSUFFICIENT_FUNDS).`);
           throw new Error("The backend verifier wallet has insufficient native CELO gas to complete transaction verification. Please top up the verifier account.");
         } else if (code === "REPLACEMENT_UNDERPRICED" || code === "NONCE_EXPIRED" || msg.includes("nonce") || msg.includes("replacement transaction underpriced")) {
-          console.warn(`Nonce issue detected, retrying... (${retries} left). Error: ${code}`);
+          console.warn(`Nonce issue detected, resetting NonceManager and retrying... (${retries} left). Error: ${code}`);
           retries--;
+          globalVerifierWallet = null; // Clear cached NonceManager to refetch network nonce
           await new Promise((r) => setTimeout(r, 2000));
         } else {
           // Any other revert (e.g. "Round does not exist") is a real failure — do not hide it.
