@@ -1,5 +1,6 @@
 import { JsonRpcProvider, Wallet, Contract, ZeroAddress, parseEther, formatEther, NonceManager } from "ethers";
 import { createRequire } from "module";
+import { createHash } from "crypto";
 
 const require = createRequire(import.meta.url);
 const questionBank = require("./data/questions.json");
@@ -11,7 +12,7 @@ import { FieldValue } from "firebase-admin/firestore";
 const WIN_THRESHOLD = 0.7; // 7/10 correct or better wins
 
 const VERIFIER_PRIVATE_KEY = process.env.QUIZA_VERIFIER_PRIVATE_KEY;
-let NETWORK = process.env.QUIZA_NETWORK || "alfajores";
+let NETWORK = process.env.QUIZA_NETWORK || "mainnet";
 if (NETWORK === "celo") NETWORK = "mainnet";
 
 let globalVerifierWallet = null;
