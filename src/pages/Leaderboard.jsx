@@ -111,12 +111,7 @@ export default function Leaderboard({ walletAddress }) {
           <div className={`text-center py-16 rounded-3xl border ${cardStyle}`}>
             <span className="text-5xl mb-4 block">🏆</span>
             <h3 className="text-xl font-bold mb-2">No leaderboard data yet.</h3>
-            <p className="text-slate-400 text-sm mb-4">Be the first player to complete a quiz and claim the #1 spot!</p>
-            <div className="bg-slate-100 text-xs text-slate-500 p-3 rounded-lg mx-auto max-w-xs text-left">
-              <p><strong>Debug Info:</strong></p>
-              <p>Project ID: {import.meta.env.VITE_FIREBASE_PROJECT_ID || 'undefined'}</p>
-              <p>Error: {errorMsg || 'none'}</p>
-            </div>
+            <p className="text-slate-400 text-sm">Be the first player to complete a quiz and claim the #1 spot!</p>
           </div>
         ) : (
           <div className="space-y-3">

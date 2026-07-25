@@ -170,17 +170,38 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {q.options.map((opt, idx) => {
               const isSelected = selected === idx;
+              const hasAnswerKey = q && q.answer !== undefined;
+              const isCorrectOpt = hasAnswerKey && idx === q.answer;
+              const isWrongSelection = status !== "active" && isSelected && hasAnswerKey && !isCorrectOpt;
+
               let stateClasses = "bg-white border-slate-150 text-slate-700 hover:border-[#0A4C86]/40 hover:bg-blue-50/40";
+              let icon = null;
+
               if (status !== "active") {
-                if (isSelected) {
-                  stateClasses = "bg-indigo-50 border-indigo-500 text-indigo-700 shadow-[0_0_0_3px_rgba(79,70,229,0.15)]";
+                if (hasAnswerKey) {
+                  if (isCorrectOpt) {
+                    stateClasses = "bg-emerald-50 border-emerald-500 text-emerald-700 font-bold shadow-[0_0_0_3px_rgba(16,185,129,0.15)]";
+                    icon = <Check size={16} className="text-emerald-600 animate-check shrink-0" />;
+                  } else if (isWrongSelection) {
+                    stateClasses = "bg-red-50 border-red-500 text-red-700 font-bold shadow-[0_0_0_3px_rgba(239,68,68,0.15)]";
+                    icon = <X size={16} className="text-red-500 animate-check shrink-0" />;
+                  } else {
+                    stateClasses = "bg-white border-slate-100 text-slate-400 opacity-60";
+                  }
                 } else {
-                  stateClasses = "bg-white border-slate-100 text-slate-400";
+                  if (isSelected) {
+                    stateClasses = "bg-indigo-50 border-indigo-500 text-indigo-700 shadow-[0_0_0_3px_rgba(79,70,229,0.15)]";
+                    icon = <Check size={16} className="text-indigo-600 animate-check shrink-0" />;
+                  } else {
+                    stateClasses = "bg-white border-slate-100 text-slate-400";
+                  }
                 }
               }
+
               if (hiddenOptions.includes(idx)) {
                 return <div key={idx} className="relative flex items-center justify-between gap-2 border border-dashed border-slate-200 rounded-2xl px-4 py-3.5 opacity-30 pointer-events-none" />;
               }
+
               return (
                 <button
                   key={idx}
@@ -189,7 +210,7 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
                   className={`relative flex items-center justify-between gap-2 border rounded-2xl px-4 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-95 ${stateClasses}`}
                 >
                   <span>{opt}</span>
-                  {status !== "active" && isSelected && <Check size={16} className="text-indigo-600 animate-check shrink-0" />}
+                  {icon}
                 </button>
               );
             })}

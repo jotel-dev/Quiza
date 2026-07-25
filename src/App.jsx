@@ -99,12 +99,16 @@ export default function QuizaApp() {
 
   useEffect(() => {
     const handleAccountChange = (accounts) => {
-      if (accounts.length === 0) {
+      if (!accounts || accounts.length === 0) {
         setWalletAddress(null);
         setSigner(null);
         setIsStakeModalOpen(false);
       } else {
-        setWalletAddress(accounts[0]);
+        const addr = accounts[0];
+        setWalletAddress(addr);
+        connectWallet(true).then(({ signer: s }) => {
+          if (s) setSigner(s);
+        }).catch(() => {});
       }
     };
     const handleChainChange = (chainId) => {
@@ -116,12 +120,13 @@ export default function QuizaApp() {
     onAccountChange(handleAccountChange);
     onChainChange(handleChainChange);
 
-    if (walletAddress) {
-      connectWallet(true).then(({ signer: s, address }) => {
+    // Auto-connect on mount
+    connectWallet(true).then(({ signer: s, address: addr }) => {
+      if (addr && s) {
         setSigner(s);
-        setWalletAddress(address);
-      }).catch((err) => console.warn("Silent auto-connect failed:", err));
-    }
+        setWalletAddress(addr);
+      }
+    }).catch((err) => console.warn("Silent auto-connect warning:", err));
 
     return () => removeWeb3Listeners();
   }, []);
@@ -285,10 +290,15 @@ export default function QuizaApp() {
           if (newWeeklyQuizzes < 10) newWeeklyQuizzes += 1;
         }
 
+        const prevPlayed = s.played || 0;
+        const prevAcc = s.accuracy || 0;
+        const gameAcc = (correct / total) * 100;
+        const cumAccuracy = prevPlayed > 0 ? Math.round((prevAcc * prevPlayed + gameAcc) / (prevPlayed + 1)) : Math.round(gameAcc);
+
         return {
-          played: s.played + 1,
+          played: prevPlayed + 1,
           bestScore: Math.max(s.bestScore, correct * 10),
-          accuracy: Math.round((correct / total) * 100),
+          accuracy: cumAccuracy,
           streak: newStreak,
           lastPlayedDate: todayStr,
           lastDailyChallengeDate: isDailyChallenge ? todayStr : s.lastDailyChallengeDate,

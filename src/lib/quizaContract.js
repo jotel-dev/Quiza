@@ -35,6 +35,8 @@ export const QUIZA_CONTRACT_ADDRESS = {
   mainnet: "0x81f2150e2aa7A28c788Ee8D3A2609f03566C5142",
 };
 
+export const CELO_NATIVE_ADDRESS = "0x0000000000000000000000000000000000000000";
+
 // cUSD token addresses (fixed, published by Celo)
 export const CUSD_ADDRESS = {
   alfajores: "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1",
@@ -46,12 +48,15 @@ export const QUIZA_ABI = [
   "function stakeCelo() external payable returns (uint256 roundId)",
   "function stakeToken(address token, uint256 amount) external returns (uint256 roundId)",
   "function withdraw(address token) external",
+  "function withdrawPoolCelo(uint256 amount) external",
+  "function withdrawPoolToken(address token, uint256 amount) external",
   "function resolve(uint256 roundId, bool won, uint8 score) external",
   "function resolve(uint256 roundId, bool won) external",
   "function balances(address player, address token) external view returns (uint256)",
   "function rounds(uint256 roundId) external view returns (address player, address token, uint256 amount, bool resolved, bool won)",
   "event Staked(uint256 indexed roundId, address indexed player, address token, uint256 amount)",
   "event Resolved(uint256 indexed roundId, address indexed player, bool won, uint256 payout)",
+  "event PoolWithdrawn(address indexed owner, address token, uint256 amount)",
 ];
 
 const ERC20_ABI = [
@@ -67,28 +72,49 @@ const ERC20_ABI = [
  * Returns { provider, signer, address, isMiniPay }.
  */
 export async function connectWallet(silent = false) {
-  if (!window.ethereum) {
+  let ethereum = typeof window !== "undefined" ? window.ethereum : null;
+
+  // If window.ethereum is not immediately available (e.g. delayed injection in MiniPay / mobile web3 browsers), wait up to 1 second
+  if (!ethereum && typeof window !== "undefined") {
+    for (let i = 0; i < 10; i++) {
+      await new Promise((r) => setTimeout(r, 100));
+      if (window.ethereum) {
+        ethereum = window.ethereum;
+        break;
+      }
+    }
+  }
+
+  if (!ethereum) {
+    if (silent) return { provider: null, signer: null, address: null, isMiniPay: false };
     throw new Error("No wallet found. Open this app inside MiniPay or install a Celo-compatible wallet.");
   }
 
   // Request accounts directly first for better wallet compatibility
   const method = silent ? "eth_accounts" : "eth_requestAccounts";
-  const accounts = await window.ethereum.request({ method });
-  if (!accounts || accounts.length === 0) {
-    throw new Error("No accounts returned from wallet.");
+  let accounts;
+  try {
+    accounts = await ethereum.request({ method });
+  } catch (err) {
+    if (silent) return { provider: null, signer: null, address: null, isMiniPay: false };
+    throw err;
   }
-  const address = accounts[0];
 
-  // Initialize provider with "any" to allow dynamic network changes without throwing
-  const provider = new BrowserProvider(window.ethereum, "any");
+  if (!accounts || accounts.length === 0) {
+    if (silent) return { provider: null, signer: null, address: null, isMiniPay: false };
+    throw new Error("No accounts returned from wallet. Please unlock your wallet and approve connection.");
+  }
+
+  const address = accounts[0];
+  const provider = new BrowserProvider(ethereum, "any");
   const signer = await provider.getSigner();
 
   let isMiniPay = false;
   try {
-    const isMiniPayFlag = await window.ethereum.request({ method: "minipay_getIsMiniPay" });
+    const isMiniPayFlag = await ethereum.request({ method: "minipay_getIsMiniPay" });
     isMiniPay = Boolean(isMiniPayFlag);
   } catch {
-    isMiniPay = /MiniPay/i.test(navigator.userAgent);
+    isMiniPay = /MiniPay/i.test(typeof navigator !== "undefined" ? navigator.userAgent : "");
   }
 
   return { provider, signer, address, isMiniPay };
@@ -96,7 +122,7 @@ export async function connectWallet(silent = false) {
 
 /** Ensures the wallet is on the expected Celo network, prompting a switch if not. */
 export async function ensureNetwork(network = NETWORK) {
-  if (!window.ethereum) return;
+  if (typeof window === "undefined" || !window.ethereum) return;
   const cfg = CELO_NETWORKS[network];
   try {
     const currentChainId = await window.ethereum.request({ method: "eth_chainId" });
@@ -109,15 +135,30 @@ export async function ensureNetwork(network = NETWORK) {
       params: [{ chainId: cfg.chainId }],
     });
   } catch (switchError) {
-    if (switchError.code === 4902) {
-      await window.ethereum.request({
-        method: "wallet_addEthereumChain",
-        params: [cfg],
-      });
-    } else if (switchError.code === -32601) {
-      console.warn("Wallet doesn't support network switching (e.g., MiniPay). Assuming correct network.");
+    const msg = switchError?.message || "";
+    const code = switchError?.code;
+    if (code === 4902) {
+      try {
+        await window.ethereum.request({
+          method: "wallet_addEthereumChain",
+          params: [cfg],
+        });
+      } catch (addErr) {
+        console.warn("Could not add chain:", addErr.message);
+      }
+    } else if (
+      code === -32601 ||
+      code === -32603 ||
+      code === 4001 ||
+      msg.toLowerCase().includes("not supported") ||
+      msg.toLowerCase().includes("unsupported") ||
+      msg.toLowerCase().includes("rejected") ||
+      msg.toLowerCase().includes("user rejected") ||
+      msg.toLowerCase().includes("chain not found")
+    ) {
+      console.warn("Wallet does not support network switching (e.g., MiniPay). Assuming correct network.", msg);
     } else {
-      throw switchError;
+      console.warn("Network switch warning:", msg);
     }
   }
 }

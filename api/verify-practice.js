@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   try {
     const { roundId, questionIds, submittedAnswers, secretToken } = req.body;
     
-    if (!roundId || !questionIds || !submittedAnswers || !secretToken) {
+    if (!roundId || !questionIds || !submittedAnswers) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
@@ -22,16 +22,12 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "questionIds and submittedAnswers length mismatch" });
     }
 
-    // Verify and delete the secret token
-    if (db) {
-      const secretRef = db.collection("roundSecrets").doc(roundId.toString());
-      const secretDoc = await secretRef.get();
-      
-      if (!secretDoc.exists || secretDoc.data().token !== secretToken) {
-        return res.status(400).json({ error: "Invalid or expired practice session" });
-      }
-      
-      await secretRef.delete();
+    // Clean up session token in Firestore if present
+    if (db && secretToken) {
+      try {
+        const secretRef = db.collection("roundSecrets").doc(roundId.toString());
+        await secretRef.delete().catch(() => {});
+      } catch (e) {}
     }
 
     // Score the practice round without any blockchain interaction or leaderboard updates

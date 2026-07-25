@@ -5,7 +5,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node scripts/dev-runner.js",
+    "dev:vite": "vite",
     "dev:api": "node server-dev.js",
     "build": "vite build",
     "lint": "oxlint",

@@ -3,9 +3,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Share2, Copy, Check, ExternalLink, Trophy, Sparkles, MessageCircle, Send } from "lucide-react";
 
 export default function ShareModal({ isOpen, onClose, shareData }) {
-  if (!isOpen || !shareData) return null;
-
   const [copied, setCopied] = useState(false);
+
+  if (!isOpen || !shareData) return null;
 
   const {
     score = "9",

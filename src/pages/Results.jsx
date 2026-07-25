@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Trophy, RotateCcw, Share2, Check, X, Target, Coins, Loader2 } from "lucide-react";
-import { JsonRpcProvider } from "ethers";
-import { withdrawWinnings, getBalance, CUSD_ADDRESS, NETWORK, CELO_NETWORKS } from "../lib/quizaContract";
+import { JsonRpcProvider, Contract } from "ethers";
+import { withdrawWinnings, getBalance, CUSD_ADDRESS, QUIZA_CONTRACT_ADDRESS, QUIZA_ABI, CELO_NATIVE_ADDRESS, NETWORK, CELO_NETWORKS } from "../lib/quizaContract";
 import ShareModal from "../components/ShareModal";
 import { playChaChing } from "../lib/sound";
 
@@ -75,20 +75,30 @@ export default function Results({ result, roundQuestions, stakeInfo, signer, onP
 
   // For winning rounds, confirm the on-chain payout has settled before enabling withdrawal.
   useEffect(() => {
-    if (!won || !stakeInfo || !signer) return;
+    if (!won || !signer) return;
 
     let cancelled = false;
     let attempts = 0;
     const MAX_ATTEMPTS = 20;
 
-    const tokenAddress =
-      stakeInfo.token === "CELO" ? "0x0000000000000000000000000000000000000000" : CUSD_ADDRESS[NETWORK];
     const provider = new JsonRpcProvider(CELO_NETWORKS[NETWORK].rpcUrls[0]);
 
     const check = async () => {
       try {
-        const balance = await getBalance(provider, await signer.getAddress(), tokenAddress, NETWORK);
-        if (!cancelled && balance > 0n) {
+        const playerAddr = await signer.getAddress();
+        const celoBal = await getBalance(provider, playerAddr, "0x0000000000000000000000000000000000000000", NETWORK).catch(() => 0n);
+        const cusdBal = await getBalance(provider, playerAddr, CUSD_ADDRESS[NETWORK], NETWORK).catch(() => 0n);
+
+        let roundResolved = false;
+        if (stakeInfo?.roundId) {
+          try {
+            const contract = new Contract(QUIZA_CONTRACT_ADDRESS[NETWORK], QUIZA_ABI, provider);
+            const r = await contract.rounds(stakeInfo.roundId);
+            if (r && r.resolved) roundResolved = true;
+          } catch (e) {}
+        }
+
+        if (!cancelled && (celoBal > 0n || cusdBal > 0n || roundResolved)) {
           setPayoutReady(true);
           playChaChing();
           return;
@@ -98,7 +108,7 @@ export default function Results({ result, roundQuestions, stakeInfo, signer, onP
       }
       attempts += 1;
       if (!cancelled && attempts < MAX_ATTEMPTS) {
-        setTimeout(check, 3000);
+        setTimeout(check, 2000);
       } else if (!cancelled) {
         setPayoutReady(true);
       }
@@ -114,8 +124,42 @@ export default function Results({ result, roundQuestions, stakeInfo, signer, onP
     setWithdrawError(null);
     setWithdrawState("withdrawing");
     try {
-      const tokenAddress = stakeInfo.token === "CELO" ? "0x0000000000000000000000000000000000000000" : CUSD_ADDRESS[NETWORK];
-      await withdrawWinnings(signer, tokenAddress, NETWORK);
+      const provider = new JsonRpcProvider(CELO_NETWORKS[NETWORK].rpcUrls[0]);
+      const playerAddr = await signer.getAddress();
+
+      const celoBal = await getBalance(provider, playerAddr, "0x0000000000000000000000000000000000000000", NETWORK).catch(() => 0n);
+      const cusdBal = await getBalance(provider, playerAddr, CUSD_ADDRESS[NETWORK], NETWORK).catch(() => 0n);
+
+      let targetTokenAddress = null;
+      if (cusdBal > 0n) {
+        targetTokenAddress = CUSD_ADDRESS[NETWORK];
+      } else if (celoBal > 0n) {
+        targetTokenAddress = "0x0000000000000000000000000000000000000000";
+      } else {
+        targetTokenAddress = (stakeInfo?.token === "CELO") ? "0x0000000000000000000000000000000000000000" : CUSD_ADDRESS[NETWORK];
+      }
+
+      if (celoBal === 0n && cusdBal === 0n) {
+        let roundResolved = false;
+        if (stakeInfo?.roundId) {
+          try {
+            const contract = new Contract(QUIZA_CONTRACT_ADDRESS[NETWORK], QUIZA_ABI, provider);
+            const r = await contract.rounds(stakeInfo.roundId);
+            if (r && r.resolved) roundResolved = true;
+          } catch (e) {}
+        }
+
+        if (!roundResolved) {
+          throw new Error("Your payout is still settling on-chain. Please wait a few seconds and try again.");
+        }
+      }
+
+      await withdrawWinnings(signer, targetTokenAddress, NETWORK);
+
+      if (cusdBal > 0n && celoBal > 0n) {
+        await withdrawWinnings(signer, "0x0000000000000000000000000000000000000000", NETWORK).catch(() => {});
+      }
+
       setWithdrawState("done");
       playChaChing();
     } catch (err) {
@@ -124,14 +168,16 @@ export default function Results({ result, roundQuestions, stakeInfo, signer, onP
       
       if (errMsg.toLowerCase().includes("user rejected") || errMsg.includes("4001")) {
         errMsg = "Transaction was rejected in your wallet. Please try again.";
+      } else if (errMsg.includes("No balance to withdraw") || errMsg.includes("still settling")) {
+        errMsg = "Your payout is still settling on-chain. Please wait a few seconds and try again.";
       } else if (errMsg.includes("could not coalesce error")) {
         const match = errMsg.match(/"message":\s*"([^"]+)"/);
         errMsg = match ? match[1] : "Network error. Please try again.";
         if (errMsg.includes("Unable to resolve host") || errMsg.includes("Failed to fetch")) {
           errMsg = "Network connection failed. Please check your internet connection and try again.";
         }
-      } else if (errMsg.length > 100) {
-        errMsg = "Transaction failed. Please check your connection and try again.";
+      } else if (errMsg.length > 150) {
+        errMsg = "Transaction failed. Please check your network connection and try again.";
       }
       
       setWithdrawError(errMsg);
@@ -270,7 +316,7 @@ export default function Results({ result, roundQuestions, stakeInfo, signer, onP
 
                 return (
                   <div key={q.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
-                    <p className="text-sm font-bold text-slate-800 mb-3">{idx + 1}. {q.prompt}</p>
+                    <p className="text-sm font-bold text-slate-800 mb-3">{idx + 1}. {q.question || q.prompt}</p>
                     <div className="space-y-2">
                       {q.options.map((opt, optIdx) => {
                         const isCorrectOpt = optIdx === correct;
