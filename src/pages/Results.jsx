@@ -86,7 +86,7 @@ export default function Results({ result, roundQuestions, stakeInfo, signer, onP
     const check = async () => {
       try {
         const playerAddr = await signer.getAddress();
-        const celoBal = await getBalance(provider, playerAddr, "0x0000000000000000000000000000000000000000", NETWORK).catch(() => 0n);
+        const celoBal = await getBalance(provider, playerAddr, CELO_NATIVE_ADDRESS, NETWORK).catch(() => 0n);
         const cusdBal = await getBalance(provider, playerAddr, CUSD_ADDRESS[NETWORK], NETWORK).catch(() => 0n);
 
         let roundResolved = false;
@@ -127,16 +127,16 @@ export default function Results({ result, roundQuestions, stakeInfo, signer, onP
       const provider = new JsonRpcProvider(CELO_NETWORKS[NETWORK].rpcUrls[0]);
       const playerAddr = await signer.getAddress();
 
-      const celoBal = await getBalance(provider, playerAddr, "0x0000000000000000000000000000000000000000", NETWORK).catch(() => 0n);
+      const celoBal = await getBalance(provider, playerAddr, CELO_NATIVE_ADDRESS, NETWORK).catch(() => 0n);
       const cusdBal = await getBalance(provider, playerAddr, CUSD_ADDRESS[NETWORK], NETWORK).catch(() => 0n);
 
       let targetTokenAddress = null;
       if (cusdBal > 0n) {
         targetTokenAddress = CUSD_ADDRESS[NETWORK];
       } else if (celoBal > 0n) {
-        targetTokenAddress = "0x0000000000000000000000000000000000000000";
+        targetTokenAddress = CELO_NATIVE_ADDRESS;
       } else {
-        targetTokenAddress = (stakeInfo?.token === "CELO") ? "0x0000000000000000000000000000000000000000" : CUSD_ADDRESS[NETWORK];
+        targetTokenAddress = (stakeInfo?.token === "CELO") ? CELO_NATIVE_ADDRESS : CUSD_ADDRESS[NETWORK];
       }
 
       if (celoBal === 0n && cusdBal === 0n) {
@@ -157,7 +157,7 @@ export default function Results({ result, roundQuestions, stakeInfo, signer, onP
       await withdrawWinnings(signer, targetTokenAddress, NETWORK);
 
       if (cusdBal > 0n && celoBal > 0n) {
-        await withdrawWinnings(signer, "0x0000000000000000000000000000000000000000", NETWORK).catch(() => {});
+        await withdrawWinnings(signer, CELO_NATIVE_ADDRESS, NETWORK).catch(() => {});
       }
 
       setWithdrawState("done");
