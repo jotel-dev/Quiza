@@ -1,3 +1,17 @@
+function escapeXml(str) {
+  if (str === null || str === undefined) return "";
+  return String(str).replace(/[&<>"']/g, (m) => {
+    switch (m) {
+      case "&": return "&amp;";
+      case "<": return "&lt;";
+      case ">": return "&gt;";
+      case '"': return "&quot;";
+      case "'": return "&apos;";
+      default: return m;
+    }
+  });
+}
+
 export default function handler(req, res) {
   const {
     score = "9",
@@ -11,13 +25,22 @@ export default function handler(req, res) {
   } = req.query;
 
   const isWin = won === "true" || won === true;
+
+  const safeScore = escapeXml(score);
+  const safeTotal = escapeXml(total);
+  const safeMultiplier = escapeXml(multiplier);
+  const safePayout = escapeXml(payout);
+  const safeToken = escapeXml(token);
+  const safeUsername = escapeXml(username);
+  const safeRank = escapeXml(rank);
+
   const titleText = isWin
-    ? `I just won ${multiplier} my stake on Quiza! 🎉`
-    : `I scored ${score}/${total} on Quiza! 🧠`;
+    ? `I just won ${safeMultiplier} my stake on Quiza! 🎉`
+    : `I scored ${safeScore}/${safeTotal} on Quiza! 🧠`;
   
-  const subText = isWin && payout && payout !== "null"
-    ? `Earned +${payout} ${token} on Celo`
-    : rank ? `Ranked #${rank} on the Global Leaderboard` : `Can you beat my score?`;
+  const subText = isWin && safePayout && safePayout !== "null"
+    ? `Earned +${safePayout} ${safeToken} on Celo`
+    : safeRank ? `Ranked #${safeRank} on the Global Leaderboard` : `Can you beat my score?`;
 
   const bgGradientStart = isWin ? "#1E1B4B" : "#0F172A";
   const bgGradientEnd = isWin ? "#312E81" : "#1E293B";
@@ -63,15 +86,15 @@ export default function handler(req, res) {
 
   <!-- Player Name / Rank -->
   <text x="1070" y="160" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="600" fill="#94A3B8" text-anchor="end">
-    ${username ? `Player: ${username}` : "Proof of Ship Season 2"}
+    ${safeUsername ? `Player: ${safeUsername}` : "Proof of Ship Season 2"}
   </text>
 
   <!-- Main Headline -->
   <text x="130" y="240" font-family="system-ui, -apple-system, sans-serif" font-size="44" font-weight="900" fill="#FFFFFF">
-    ${titleText}
+    ${escapeXml(titleText)}
   </text>
   <text x="130" y="285" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="600" fill="#CBD5E1">
-    ${subText}
+    ${escapeXml(subText)}
   </text>
 
   <!-- Stat Cards Grid -->
@@ -79,14 +102,14 @@ export default function handler(req, res) {
   <g transform="translate(130, 340)">
     <rect width="260" height="160" rx="24" fill="#ffffff" fill-opacity="0.08" stroke="#ffffff" stroke-opacity="0.15"/>
     <text x="30" y="60" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="700" fill="#94A3B8">SCORE</text>
-    <text x="30" y="125" font-family="system-ui, -apple-system, sans-serif" font-size="52" font-weight="900" fill="#10B981">${score}/${total}</text>
+    <text x="30" y="125" font-family="system-ui, -apple-system, sans-serif" font-size="52" font-weight="900" fill="#10B981">${safeScore}/${safeTotal}</text>
   </g>
 
   <!-- Multiplier Stat Box -->
   <g transform="translate(420, 340)">
     <rect width="260" height="160" rx="24" fill="#ffffff" fill-opacity="0.08" stroke="#ffffff" stroke-opacity="0.15"/>
     <text x="30" y="60" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="700" fill="#94A3B8">MULTIPLIER</text>
-    <text x="30" y="125" font-family="system-ui, -apple-system, sans-serif" font-size="52" font-weight="900" fill="#F59E0B">${multiplier}</text>
+    <text x="30" y="125" font-family="system-ui, -apple-system, sans-serif" font-size="52" font-weight="900" fill="#F59E0B">${safeMultiplier}</text>
   </g>
 
   <!-- Network / Platform Box -->
