@@ -1,98 +1,197 @@
-# Quiza 🧠
+# Quiza 🧠 — Stake. Play. Win.
 
-**Stake. Play. Win.** A solo-player trivia MiniApp for [MiniPay](https://www.opera.com/products/minipay) on [Celo](https://celo.org) — built for [Proof of Ship Season 2](https://celoplatform.notion.site/) by Celo Public Goods.
+> **A real-money trivia MiniApp for [MiniPay](https://www.opera.com/products/minipay) on [Celo](https://celo.org)** — Built for **[Proof of Ship Season 2](https://celoplatform.notion.site/)** by Celo Public Goods.
 
-Quiza lets anyone stake a small amount of CELO or cUSD, answer 10 trivia questions across Math, Geography, History, and General Knowledge, and win back their stake plus a bonus if they score high enough — all onchain.
+[![Celo Mainnet](https://img.shields.io/badge/Celo-Mainnet_Verified-35D07F?style=for-the-badge&logo=celo&logoColor=white)](https://celoscan.io/address/0x81f2150e2aa7A28c788Ee8D3A2609f03566C5142#code)
+[![MiniPay Enabled](https://img.shields.io/badge/MiniPay-Integrated-0052FF?style=for-the-badge&logo=opera&logoColor=white)](https://www.opera.com/products/minipay)
+[![Proof of Ship](https://img.shields.io/badge/Proof_of_Ship-Season_2-F59E0B?style=for-the-badge)](https://celoplatform.notion.site/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
 
 ---
 
-## How it works
+## 🌟 Overview
 
-1. **Connect** your MiniPay wallet
-2. **Stake** 0.01 CELO or cUSD
-3. **Play** a 10-question round against the clock
-4. **Score 7/10 or higher** → win back **1.5x** your stake, paid out instantly
-5. Miss the threshold → stake funds the reward pool for future winners
+**Quiza** is a ultra-fast, mobile-first Web3 trivia game where players stake **CELO** or **cUSD** to test their knowledge across Math, Geography, History, and General Knowledge. Score high enough to win back your stake plus progressive bonus payouts — settled instantly on the Celo blockchain directly into your MiniPay wallet.
 
-## Tech stack
+Designed specifically for MiniPay's 16M+ African & global mobile user base, Quiza removes traditional Web3 friction with sub-second Celo transactions, seamless native stablecoin staking, and intuitive gameplay.
 
-| Layer | Tech |
-|---|---|
-| Smart contract | Solidity ^0.8.20, OpenZeppelin (Ownable, ReentrancyGuard) |
-| Chain | Celo (Alfajores testnet → Mainnet) |
-| Deployment | Hardhat |
-| Frontend | React + Vite + Tailwind CSS |
-| Wallet | MiniPay (EIP-1193 injected provider) via ethers.js v6 |
-| Backend | Node.js verifier service (Express/serverless, Firebase) |
+---
 
-## Project structure
+## ✨ Key Features
+
+- 🎮 **Multiple Game Modes**:
+  - **Stake & Win**: Pick your favorite category and difficulty tier.
+  - **Daily Challenge**: 10 fresh questions daily competing for top global ranking.
+  - **Practice Mode**: Risk-free gameplay to hone your skills before staking.
+- 💰 **Progressive Multipliers**:
+  - **7 / 10 Correct**: **1.2x** payout
+  - **8-9 / 10 Correct**: **1.5x** payout
+  - **10 / 10 Perfect Score**: **2.0x** payout (Double your stake!)
+- 🛡️ **Built-in Player Protections**:
+  - **`claimTimeout` Refund Guarantee**: Players can reclaim their full stake directly from the smart contract if backend resolution ever times out (> 2 hours).
+  - **Anti-Cheat Off-Chain Scoring**: Quiz answer keys are evaluated securely off-chain via backend verifier service, eliminating on-chain answer inspection attacks.
+- ⚡ **EIP-2771 Meta-Transactions Ready**: Architecture configured for gasless staking via relayers.
+- 🎨 **Dynamic Social Sharing**: Automatically generates dynamic SVG share cards (`/api/og`) and OpenGraph preview pages (`/api/share-card`) for instant sharing on X, Telegram, and WhatsApp.
+
+---
+
+## 🎮 How It Works
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Player as 📱 Player (MiniPay)
+    participant Contract as 📜 Quiza.sol (Celo)
+    participant Backend as ⚡ Verifier API
+    
+    Player->>Contract: stakeCelo() or stakeToken(cUSD)
+    Contract-->>Player: Staked Event (roundId)
+    Backend->>Player: Deliver 10 Questions (Answers hidden)
+    Player->>Backend: Submit Answers + roundId + secretToken
+    Backend->>Backend: Score Answers Off-Chain
+    Backend->>Contract: resolve(roundId, won, score)
+    Contract->>Contract: Credit Payout to Player Balance
+    Player->>Contract: withdraw(token) -> Instant Wallet Payout
+```
+
+1. **Connect**: Tap in using Opera MiniPay wallet (or any Celo-compatible wallet).
+2. **Stake**: Choose **CELO** or **cUSD** (e.g. 0.01 CELO or 0.001 cUSD).
+3. **Play**: Answer 10 randomized trivia questions against the clock.
+4. **Win**: Score 7/10 or higher to win up to **2.0x** your stake!
+5. **Withdraw**: Winnings accumulate on-chain and are withdrawable at any time.
+
+---
+
+## 📜 Smart Contract & Mainnet Deployment
+
+The core contract [`Quiza.sol`](./contracts/Quiza.sol) manages player staking, verifier resolution, balance tracking, and withdrawals.
+
+| Network | Contract Address | Explorer Link |
+|---|---|---|
+| **Celo Mainnet** | `0x81f2150e2aa7A28c788Ee8D3A2609f03566C5142` | [View on Celoscan ↗](https://celoscan.io/address/0x81f2150e2aa7A28c788Ee8D3A2609f03566C5142#code) |
+| **Celo Alfajores Testnet** | Configurable in `.env` | [Celoscan Testnet ↗](https://alfajores.celoscan.io) |
+
+### Core Methods
+
+- `stakeCelo()` — Stake native CELO to create a new quiz round.
+- `stakeToken(address token, uint256 amount)` — Stake cUSD tokens (requires approval).
+- `resolve(uint256 roundId, bool won, uint8 score)` — Called by authorized backend verifier to payout winning rounds based on progressive multiplier tiers.
+- `claimTimeout(uint256 roundId)` — Allows players to claim a 100% refund of their stake if a round remains unresolved after 2 hours.
+- `withdraw(address token)` — Withdraw accumulated winnings to player's wallet address.
+
+---
+
+## 🏗️ Project Architecture
 
 ```
 quiza/
 ├── contracts/
-│   └── Quiza.sol              # Stake, resolve, and payout logic
+│   └── Quiza.sol              # Smart contract (ERC2771Context, Ownable, ReentrancyGuard)
 ├── scripts/
-│   └── deploy.js              # Hardhat deployment script
+│   ├── deploy.js              # Hardhat deployment script for Celo networks
+│   ├── dev-runner.js          # Concurrent dev runner (Vite + Express API)
+│   └── fund-verifier.js       # Utility script to check/fund verifier gas
 ├── src/
-│   ├── pages/                 # Home, Quiz, Results, Leaderboard screens
-│   ├── components/            # Reusable UI components
-│   ├── lib/                   # quizaContract.js and frontend integration
-│   └── App.jsx                # Main application routing
+│   ├── pages/                 # Home, Quiz, Results, Leaderboard, Setup, Profile screens
+│   ├── components/            # StakeModal, ShareModal, Navbar, UI components
+│   ├── lib/                   # quizaContract.js, firebase.js, web3 integration
+│   └── App.jsx                # Main React router & global state management
 ├── api/
-│   ├── verify-round.js        # Scores answers + calls resolve() on-chain
-│   └── leaderboard.js         # Fetch/update leaderboard rankings
-├── docs/
-│   ├── CHECKLIST.md           # Proof of Ship + build checklist
-│   └── DEPLOY.md              # Step-by-step deployment guide
-├── hardhat.config.js
-├── package.json
-└── vite.config.js
+│   ├── round-questions.js     # Serves randomized questions (without answers)
+│   ├── verify-round.js        # Scores answers & submits resolve() on-chain
+│   ├── verify-practice.js     # Zero-stake practice mode verification
+│   ├── og.js                  # Dynamic SVG OpenGraph image generator
+│   ├── share-card.js          # Social share HTML preview card generator
+│   └── leaderboard.js         # Global rankings & score syncing
+├── hardhat.config.js          # Celo Mainnet & Alfajores network configs
+├── index.html                 # App entry + Talent App verification tag
+└── server-dev.js              # Local Express API server for local dev
 ```
 
-## Getting started
+---
 
+## 🛠️ Tech Stack
+
+- **Smart Contracts**: Solidity `^0.8.20`, OpenZeppelin Contracts, Hardhat
+- **Chain & Wallet Integration**: Celo Mainnet, EIP-1193 MiniPay Provider, Ethers.js v6
+- **Frontend**: React 18, Vite, Tailwind CSS, Framer Motion, Lucide Icons
+- **Backend & Verification**: Node.js, Express, Firebase Firestore (Leaderboards & Session Tokens)
+- **Deployment**: Vercel (Frontend & Serverless API), Celoscan Verification
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js `^18.0.0`
+- npm `^9.0.0`
+
+### Installation & Local Setup
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/your-username/quiza.git
+   cd quiza
+   ```
+
+2. **Install dependencies**:
+   ```bash
+   npm install
+   ```
+
+3. **Configure Environment Variables**:
+   Copy `.env.example` to `.env` and fill in your values:
+   ```bash
+   cp .env.example .env
+   ```
+   ```env
+   DEPLOYER_PRIVATE_KEY=your_private_key
+   QUIZA_VERIFIER_ADDRESS=0x_verifier_wallet_address
+   QUIZA_VERIFIER_PRIVATE_KEY=your_verifier_private_key
+   QUIZA_NETWORK=mainnet
+   CELOSCAN_API_KEY=your_celoscan_api_key
+   ```
+
+4. **Start Development Environment**:
+   Run frontend Vite dev server and Express API simultaneously:
+   ```bash
+   npm run dev:all
+   ```
+   - App will be running at `http://localhost:5173`
+   - Local API running at `http://localhost:3001`
+
+---
+
+## 🧪 Testing & Verification
+
+### Run Linter
 ```bash
-# install dependencies
-npm install
-
-# copy env template and fill in your keys
-cp .env.example .env
-
-# start the local dev server
-npm run dev
-
-# start the local api server
-npm run dev:api
-
-# deploy to Alfajores testnet
-npm run deploy:testnet
+npx oxlint --ignore-path .gitignore .
 ```
 
-Full deployment walkthrough (funding a wallet, verifying the contract, going to mainnet) is in [`docs/DEPLOY.md`](./docs/DEPLOY.md).
+### Compile Smart Contracts
+```bash
+npm run compile
+```
 
-## Smart contract
+### Verify Contract on Celoscan (Mainnet)
+```bash
+npm run verify:mainnet -- 0x81f2150e2aa7A28c788Ee8D3A2609f03566C5142 0x765DE816845861e75A25fCA122bb6898B8B1282a <VERIFIER_ADDRESS>
+```
 
-`Quiza.sol` handles staking and payouts:
+---
 
-- `stakeCelo()` — stake native CELO for a round
-- `stakeToken(cUSD, amount)` — stake cUSD for a round
-- `resolve(roundId, won)` — called by a trusted backend verifier after scoring the round off-chain
-- `withdraw(token)` — claim accumulated winnings
-- `fundPoolCelo()` / `fundPoolToken()` — owner tops up the reward pool
+## 🏅 Proof of Ship Season 2
 
-v1 uses a trusted backend verifier to check quiz scores, since the answer key can't live on-chain without being publicly readable. This can evolve toward a commit-reveal or oracle-based scheme in a future season.
+Quiza is actively participating in **Celo's Proof of Ship Season 2**.
 
-> [!IMPORTANT]
-> **The Verifier Wallet needs gas:** Because the backend calls `resolve()` on-chain, the address specified by `QUIZA_VERIFIER_PRIVATE_KEY` in your `.env` must have native CELO to pay for transaction fees. If this wallet runs out of gas, players will see an "insufficient funds" error when finishing a quiz. Make sure to keep the Verifier Wallet funded on the network you are running (`QUIZA_NETWORK`).
+- **Talent App Project Verification**: Tag embedded in [`index.html`](./index.html#L7).
+- **Verified Smart Contract**: Deployed & verified on Celo Mainnet (`0x81f2150e2aa7A28c788Ee8D3A2609f03566C5142`).
+- **MiniPay Hook Integrated**: Complete provider detection and native flow optimized for Opera MiniPay.
 
-## Why Celo / MiniPay
+---
 
-Celo's native CELO token is ERC20-compatible out of the box, so Quiza can accept both CELO and cUSD through one unified contract interface — no wrapping, no separate logic paths. Combined with MiniPay's 16M+ user base and self-custodial stablecoin rails, it's a natural fit for a low-friction, real-money trivia game aimed at everyday users rather than crypto natives.
+## 📄 License
 
-## Proof of Ship
-
-This project is built for Celo's Proof of Ship Season 2 (July 2026 cycle). Progress and requirements are tracked in [`docs/CHECKLIST.md`](./docs/CHECKLIST.md).
-
-## License
-
-MIT
+This project is licensed under the [MIT License](LICENSE).
