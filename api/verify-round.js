@@ -88,11 +88,6 @@ export async function verifyAndResolve({ roundId, questionIds, submittedAnswers,
     }
   }
 
-  // 3. Stateless fallback: if roundId is provided and no DB, validate against HMAC
-  if (!isValidToken && roundId) {
-    isValidToken = true; // allow valid round submission to proceed
-  }
-
   if (!isValidToken) {
     throw new Error("Invalid or expired round session");
   }
