@@ -216,6 +216,7 @@ export default function QuizaApp() {
     } catch (err) {
       console.error("Failed to load round questions:", err);
       setVerifyError("Could not load questions for this round. Please stake again.");
+      throw err;
     }
   };
 

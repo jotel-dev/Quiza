@@ -25,6 +25,7 @@ export default function StakeModal({ isOpen, onClose, onStaked, onConnect, walle
   const [txState, setTxState] = useState("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [roundId, setRoundId] = useState(null);
+  const [isStartingQuiz, setIsStartingQuiz] = useState(false);
   const [username, setUsername] = useState(() => localStorage.getItem("quiza_username") || "");
   
   const stakeAmt = selectedToken.symbol === "cUSD" ? 0.001 : 0.01;
@@ -42,6 +43,7 @@ export default function StakeModal({ isOpen, onClose, onStaked, onConnect, walle
       setTxState("idle");
       setRoundId(null);
       setErrorMessage("");
+      setIsStartingQuiz(false);
       
       // Fetch balances if already connected
       if (fullAddress) {
@@ -308,10 +310,34 @@ export default function StakeModal({ isOpen, onClose, onStaked, onConnect, walle
               {stakeAmt} {selectedToken.symbol} locked in. Good luck!
             </p>
             <button 
-              onClick={() => onStaked({ token: selectedToken.symbol, amount: stakeAmt, roundId, address, signer })}
-              className="w-full mt-5 bg-[#0A4C86] text-white text-sm font-semibold py-3 rounded-xl shadow-md shadow-blue-200 hover:opacity-90 transition active:scale-95"
+              disabled={isStartingQuiz}
+              onClick={async () => {
+                setIsStartingQuiz(true);
+                try {
+                  await onStaked({
+                    token: selectedToken.symbol,
+                    amount: stakeAmt,
+                    roundId,
+                    address: fullAddress || walletAddress,
+                    signer
+                  });
+                } catch (err) {
+                  setTxState("failed");
+                  setErrorMessage(err?.message || "Could not load questions for this round.");
+                } finally {
+                  setIsStartingQuiz(false);
+                }
+              }}
+              className="w-full mt-5 bg-[#0A4C86] text-white text-sm font-semibold py-3 rounded-xl shadow-md shadow-blue-200 hover:opacity-90 transition active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              Start Quiz →
+              {isStartingQuiz ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  Starting Quiz...
+                </>
+              ) : (
+                "Start Quiz →"
+              )}
             </button>
           </div>
         )}
