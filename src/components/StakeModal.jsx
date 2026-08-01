@@ -322,7 +322,7 @@ export default function StakeModal({ isOpen, onClose, onStaked, onConnect, walle
                     signer
                   });
                 } catch (err) {
-                  setTxState("failed");
+                  setTxState("error");
                   setErrorMessage(err?.message || "Could not load questions for this round.");
                 } finally {
                   setIsStartingQuiz(false);
