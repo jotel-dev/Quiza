@@ -311,29 +311,45 @@ export async function submitRoundForVerification({ roundId, questionIds, submitt
 
 let accountChangeHandler = null;
 let chainChangeHandler = null;
+let wrappedAccountHandler = null;
+let wrappedChainHandler = null;
 
 export function onAccountChange(handler) {
   accountChangeHandler = handler;
   if (window.ethereum) {
-    window.ethereum.on("accountsChanged", (accounts) => {
+    if (wrappedAccountHandler) {
+      window.ethereum.removeListener("accountsChanged", wrappedAccountHandler);
+    }
+    wrappedAccountHandler = (accounts) => {
       if (accountChangeHandler) accountChangeHandler(accounts);
-    });
+    };
+    window.ethereum.on("accountsChanged", wrappedAccountHandler);
   }
 }
 
 export function onChainChange(handler) {
   chainChangeHandler = handler;
   if (window.ethereum) {
-    window.ethereum.on("chainChanged", (chainId) => {
+    if (wrappedChainHandler) {
+      window.ethereum.removeListener("chainChanged", wrappedChainHandler);
+    }
+    wrappedChainHandler = (chainId) => {
       if (chainChangeHandler) chainChangeHandler(chainId);
-    });
+    };
+    window.ethereum.on("chainChanged", wrappedChainHandler);
   }
 }
 
 export function removeWeb3Listeners() {
   if (window.ethereum) {
-    window.ethereum.removeListener("accountsChanged", accountChangeHandler);
-    window.ethereum.removeListener("chainChanged", chainChangeHandler);
+    if (wrappedAccountHandler) {
+      window.ethereum.removeListener("accountsChanged", wrappedAccountHandler);
+      wrappedAccountHandler = null;
+    }
+    if (wrappedChainHandler) {
+      window.ethereum.removeListener("chainChanged", wrappedChainHandler);
+      wrappedChainHandler = null;
+    }
   }
   accountChangeHandler = null;
   chainChangeHandler = null;
