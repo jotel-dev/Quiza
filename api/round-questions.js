@@ -1,14 +1,18 @@
 import { createRequire } from "module";
 import { createHash, randomUUID } from "crypto";
 import { db } from "./firebaseAdmin.js";
+import { rateLimit } from "./rate-limit.js";
 
 const require = createRequire(import.meta.url);
 const questionBank = require("./data/questions.json");
 
 // Questions are selected here, server-side.
-// We return the answer so the frontend can provide immediate correct/incorrect UI feedback.
+// Answers are stripped from question objects before being returned to the client for anti-cheat security.
 // Selection is deterministic per roundId (seeded with a server secret).
-const SECRET = process.env.QUIZA_ROUND_SECRET || "quiza-round-v1";
+const SECRET = process.env.QUIZA_ROUND_SECRET;
+if (!SECRET) {
+  throw new Error("QUIZA_ROUND_SECRET is not set in environment");
+}
 
 const CATEGORY_COLORS = {
   Math: "#4F46E5",
@@ -82,8 +86,6 @@ export function selectQuestions(roundId, type = "standard", category = "Mixed", 
 
   return shuffle(selected, rng).map(q => publicView(q, rng));
 }
-
-import { rateLimit } from "./rate-limit.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });

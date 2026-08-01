@@ -8,6 +8,7 @@ const questionBank = require("./data/questions.json");
 import { QUIZA_ABI, QUIZA_CONTRACT_ADDRESS, CELO_NETWORKS } from "../src/lib/quizaContract.js";
 import { db } from "./firebaseAdmin.js";
 import { FieldValue } from "firebase-admin/firestore";
+import { rateLimit } from "./rate-limit.js";
 
 const WIN_THRESHOLD = 0.7; // 7/10 correct or better wins
 
@@ -57,7 +58,10 @@ export async function verifyAndResolve({ roundId, questionIds, submittedAnswers,
     throw new Error("Missing or invalid player address");
   }
   // Verify the secret token
-  const SECRET = process.env.QUIZA_ROUND_SECRET || "quiza-round-v1";
+  const SECRET = process.env.QUIZA_ROUND_SECRET;
+  if (!SECRET) {
+    throw new Error("QUIZA_ROUND_SECRET is not set in environment");
+  }
   const expectedHmac = createHash("sha256").update(`${SECRET}:${String(roundId)}`).digest("hex");
 
   let isValidToken = false;
@@ -256,8 +260,6 @@ export async function verifyAndResolve({ roundId, questionIds, submittedAnswers,
 
   return { won, correctCount, total, txHash, correctAnswers };
 }
-
-import { rateLimit } from "./rate-limit.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
