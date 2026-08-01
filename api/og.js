@@ -29,18 +29,15 @@ export default function handler(req, res) {
   const safeScore = escapeXml(score);
   const safeTotal = escapeXml(total);
   const safeMultiplier = escapeXml(multiplier);
-  const safePayout = escapeXml(payout);
-  const safeToken = escapeXml(token);
   const safeUsername = escapeXml(username);
-  const safeRank = escapeXml(rank);
 
   const titleText = isWin
-    ? `I just won ${safeMultiplier} my stake on Quiza! 🎉`
-    : `I scored ${safeScore}/${safeTotal} on Quiza! 🧠`;
+    ? `I just won ${multiplier} my stake on Quiza! 🎉`
+    : `I scored ${score}/${total} on Quiza! 🧠`;
   
-  const subText = isWin && safePayout && safePayout !== "null"
-    ? `Earned +${safePayout} ${safeToken} on Celo`
-    : safeRank ? `Ranked #${safeRank} on the Global Leaderboard` : `Can you beat my score?`;
+  const subText = isWin && payout && payout !== "null"
+    ? `Earned +${payout} ${token} on Celo`
+    : rank ? `Ranked #${rank} on the Global Leaderboard` : `Can you beat my score?`;
 
   const bgGradientStart = isWin ? "#1E1B4B" : "#0F172A";
   const bgGradientEnd = isWin ? "#312E81" : "#1E293B";
