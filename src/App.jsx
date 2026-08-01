@@ -43,7 +43,12 @@ const getWeekIdentifier = () => {
 };
 
 
-const WIN_MULTIPLIER = 1.5;
+function getTieredMultiplier(score) {
+  if (score >= 10) return 2.0;
+  if (score >= 8) return 1.5;
+  if (score >= 7) return 1.2;
+  return 1.0;
+}
 
 function loadPersistedState() {
   try {
@@ -263,9 +268,10 @@ export default function QuizaApp() {
       }
 
       const stakeAmt = stakeInfo.amount ?? (stakeInfo.token === "cUSD" ? 0.001 : 0.01);
-      const payout = (stakeInfo.type === "practice") ? null : (verified.won ? (stakeAmt * WIN_MULTIPLIER).toFixed(4) : null);
       const correct = verified.correctCount;
       const total = verified.total;
+      const multiplier = getTieredMultiplier(correct);
+      const payout = (stakeInfo.type === "practice") ? null : (verified.won ? (stakeAmt * multiplier).toFixed(4) : null);
       setResult({
         correct,
         wrong: total - correct,
