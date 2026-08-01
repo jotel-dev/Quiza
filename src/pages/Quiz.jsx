@@ -1,6 +1,6 @@
  import React, { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Clock, X, Check, SkipForward, Zap } from "lucide-react";
+import { Clock, Check, SkipForward, Zap } from "lucide-react";
 import { playPop, playTick, triggerHaptic } from "../lib/sound";
 
 const TIME_PER_QUESTION = 15;
@@ -76,11 +76,7 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
   const handleAnswer = (idx) => {
     if (status !== "active" || hasAdvanced.current || !q) return;
     playPop();
-    if (q && q.answer !== undefined && idx !== q.answer) {
-      triggerHaptic("incorrect");
-    } else {
-      triggerHaptic("tap");
-    }
+    triggerHaptic("tap");
     setSelected(idx);
     setStatus("selected");
     setTimeout(() => goNext(idx), 600);
@@ -159,7 +155,7 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
         </div>
 
         <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden mb-2">
-          <div className="h-full bg-[#0A4C86] rounded-full transition-all duration-500 ease-out" style={{ width: `${(current / roundQuestions.length) * 100}%` }} />
+          <div className="h-full bg-[#0A4C86] rounded-full transition-all duration-500 ease-out" style={{ width: `${((current + 1) / roundQuestions.length) * 100}%` }} />
         </div>
         <div className="w-full h-1 bg-slate-50 rounded-full overflow-hidden mb-8">
           <div className="h-full rounded-full transition-all duration-1000 ease-linear" style={{ width: `${timerPct}%`, backgroundColor: timerColor }} />
@@ -170,31 +166,16 @@ export default function Quiz({ roundQuestions, onRoundComplete }) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {q.options.map((opt, idx) => {
               const isSelected = selected === idx;
-              const hasAnswerKey = q && q.answer !== undefined;
-              const isCorrectOpt = hasAnswerKey && idx === q.answer;
-              const isWrongSelection = status !== "active" && isSelected && hasAnswerKey && !isCorrectOpt;
 
               let stateClasses = "bg-white border-slate-150 text-slate-700 hover:border-[#0A4C86]/40 hover:bg-blue-50/40";
               let icon = null;
 
               if (status !== "active") {
-                if (hasAnswerKey) {
-                  if (isCorrectOpt) {
-                    stateClasses = "bg-emerald-50 border-emerald-500 text-emerald-700 font-bold shadow-[0_0_0_3px_rgba(16,185,129,0.15)]";
-                    icon = <Check size={16} className="text-emerald-600 animate-check shrink-0" />;
-                  } else if (isWrongSelection) {
-                    stateClasses = "bg-red-50 border-red-500 text-red-700 font-bold shadow-[0_0_0_3px_rgba(239,68,68,0.15)]";
-                    icon = <X size={16} className="text-red-500 animate-check shrink-0" />;
-                  } else {
-                    stateClasses = "bg-white border-slate-100 text-slate-400 opacity-60";
-                  }
+                if (isSelected) {
+                  stateClasses = "bg-indigo-50 border-indigo-500 text-indigo-700 shadow-[0_0_0_3px_rgba(79,70,229,0.15)]";
+                  icon = <Check size={16} className="text-indigo-600 animate-check shrink-0" />;
                 } else {
-                  if (isSelected) {
-                    stateClasses = "bg-indigo-50 border-indigo-500 text-indigo-700 shadow-[0_0_0_3px_rgba(79,70,229,0.15)]";
-                    icon = <Check size={16} className="text-indigo-600 animate-check shrink-0" />;
-                  } else {
-                    stateClasses = "bg-white border-slate-100 text-slate-400";
-                  }
+                  stateClasses = "bg-white border-slate-100 text-slate-400";
                 }
               }
 
