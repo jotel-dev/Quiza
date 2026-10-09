@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: quiza-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: quiza
+      POSTGRES_PASSWORD: quiza_password
+      POSTGRES_DB: quiza_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

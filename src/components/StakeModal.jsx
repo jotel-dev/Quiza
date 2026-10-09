@@ -3,8 +3,8 @@ import { Wallet, X, Coins, ChevronRight, Loader2, CheckCircle2, AlertCircle } fr
 import { connectWallet, ensureNetwork, stakeCelo, stakeCUSD, getWalletBalances, getRoundIdFromReceipt, NETWORK } from "../lib/quizaContract";
 
 const INITIAL_TOKENS = [
-  { symbol: "CELO", name: "Celo", color: "#F26722", balance: "0.0000" },
-  { symbol: "cUSD", name: "Celo Dollar", color: "#0A4C86", balance: "0.0000" },
+  { symbol: "XLM", name: "Stellar Lumens", color: "#F26722", balance: "0.0000" },
+  { symbol: "USDC", name: "USD Coin", color: "#0A4C86", balance: "0.0000" },
 ];
 
 
@@ -28,7 +28,7 @@ export default function StakeModal({ isOpen, onClose, onStaked, onConnect, walle
   const [isStartingQuiz, setIsStartingQuiz] = useState(false);
   const [username, setUsername] = useState(() => localStorage.getItem("quiza_username") || "");
   
-  const stakeAmt = selectedToken.symbol === "cUSD" ? 0.001 : 0.01;
+  const stakeAmt = (selectedToken.symbol === "USDC" || selectedToken.symbol === "cUSD") ? 0.001 : 0.01;
 
   useEffect(() => {
     if (walletAddress && !address) {
@@ -51,8 +51,8 @@ export default function StakeModal({ isOpen, onClose, onStaked, onConnect, walle
           try {
             const balances = await getWalletBalances(null, fullAddress, NETWORK);
             const updatedTokens = [
-              { ...INITIAL_TOKENS[0], balance: balances.CELO },
-              { ...INITIAL_TOKENS[1], balance: balances.cUSD },
+              { ...INITIAL_TOKENS[0], balance: balances.XLM || balances.CELO },
+              { ...INITIAL_TOKENS[1], balance: balances.USDC || balances.cUSD },
             ];
             setTokens(updatedTokens);
             // Don't override selectedToken if they already changed it, just update the balance in state
@@ -74,8 +74,8 @@ export default function StakeModal({ isOpen, onClose, onStaked, onConnect, walle
       
       const balances = await getWalletBalances(provider, addr, NETWORK);
       const updatedTokens = [
-        { ...INITIAL_TOKENS[0], balance: balances.CELO },
-        { ...INITIAL_TOKENS[1], balance: balances.cUSD },
+        { ...INITIAL_TOKENS[0], balance: balances.XLM || balances.CELO },
+        { ...INITIAL_TOKENS[1], balance: balances.USDC || balances.cUSD },
       ];
       setTokens(updatedTokens);
       setSelectedToken(updatedTokens[1]);
@@ -110,7 +110,7 @@ export default function StakeModal({ isOpen, onClose, onStaked, onConnect, walle
 
     try {
       let receipt;
-      if (selectedToken.symbol === "CELO") {
+      if (selectedToken.symbol === "XLM" || selectedToken.symbol === "CELO") {
         receipt = await stakeCelo(signer, stakeAmt.toString(), NETWORK);
       } else {
         receipt = await stakeCUSD(signer, stakeAmt.toString(), NETWORK);
@@ -123,8 +123,8 @@ export default function StakeModal({ isOpen, onClose, onStaked, onConnect, walle
       let errMsg = error?.message || "Transaction failed or was rejected.";
       if (errMsg.toLowerCase().includes("user rejected") || errMsg.includes("4001")) {
         errMsg = "Transaction was rejected in your wallet. Please try again.";
-      } else if (errMsg.includes("eth_estimateGas") || errMsg.includes("insufficient funds")) {
-        errMsg = "Transaction failed. Please ensure you have enough CELO to cover the network gas fee.";
+      } else if (errMsg.includes("eth_estimateGas") || errMsg.includes("insufficient funds") || errMsg.includes("op_underfunded")) {
+        errMsg = "Transaction failed. Please ensure you have enough XLM to cover the network fee.";
       } else if (errMsg.includes("could not coalesce error")) {
         // Ethers v6 often wraps RPC errors in a huge JSON blob if it can't map the code
         const match = errMsg.match(/"message":\s*"([^"]+)"/);
@@ -199,7 +199,7 @@ export default function StakeModal({ isOpen, onClose, onStaked, onConnect, walle
               <span className="text-xs font-medium text-slate-400">{address}</span>
               {isMiniPay && (
                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-[#0A4C86] ml-1">
-                  MiniPay
+                  Freighter
                 </span>
               )}
             </div>
@@ -296,7 +296,7 @@ export default function StakeModal({ isOpen, onClose, onStaked, onConnect, walle
             <Loader2 size={32} className="mx-auto text-[#0A4C86] animate-spin-slow" />
             <h2 className="text-base font-bold text-slate-800 mt-4">Confirming stake...</h2>
             <p className="text-sm text-slate-400 mt-1">
-              Staking {stakeAmt} {selectedToken.symbol} on Celo
+              Staking {stakeAmt} {selectedToken.symbol} on Stellar
             </p>
           </div>
         )}

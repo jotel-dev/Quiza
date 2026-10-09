@@ -16,7 +16,8 @@ import {
   connectWallet,
   ensureNetwork,
   submitRoundForVerification,
-  CELO_NETWORKS,
+  fetchRoundQuestions,
+  STELLAR_NETWORKS,
   NETWORK,
   onAccountChange,
   onChainChange,
@@ -172,16 +173,12 @@ export default function QuizaApp() {
     setStakeInfo({ type: "practice", roundId: dummyRoundId, amount: 0, token: "FREE" });
     
     try {
-      const res = await fetch("/api/round-questions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          roundId: dummyRoundId,
-          type: "practice",
-          category: "Mixed",
-          difficulty: "Mixed",
-          walletAddress: walletAddress || "guest"
-        }),
+      const res = await fetchRoundQuestions({
+        roundId: dummyRoundId,
+        type: "practice",
+        category: "Mixed",
+        difficulty: "Mixed",
+        walletAddress: walletAddress || "guest"
       });
       if (!res.ok) throw new Error("Failed to load practice questions");
       const data = await res.json();
@@ -201,16 +198,12 @@ export default function QuizaApp() {
     try {
       // Questions are selected server-side and returned WITHOUT answers,
       // so the answer key never reaches the client.
-      const res = await fetch("/api/round-questions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          roundId: info.roundId.toString(),
-          type: isDailyChallenge ? "daily" : "standard",
-          category: quizConfig.category,
-          difficulty: quizConfig.difficulty,
-          walletAddress
-        }),
+      const res = await fetchRoundQuestions({
+        roundId: info.roundId.toString(),
+        type: isDailyChallenge ? "daily" : "standard",
+        category: quizConfig.category,
+        difficulty: quizConfig.difficulty,
+        walletAddress
       });
       if (!res.ok) throw new Error("Failed to load questions");
       const data = await res.json();
@@ -267,7 +260,7 @@ export default function QuizaApp() {
         });
       }
 
-      const stakeAmt = stakeInfo.amount ?? (stakeInfo.token === "cUSD" ? 0.001 : 0.01);
+      const stakeAmt = stakeInfo.amount ?? (stakeInfo.token === "USDC" || stakeInfo.token === "cUSD" ? 0.001 : 0.01);
       const correct = verified.correctCount;
       const total = verified.total;
       const multiplier = getTieredMultiplier(correct);
@@ -330,8 +323,8 @@ export default function QuizaApp() {
     } catch (err) {
       console.error("Verification error:", err);
       let errMsg = err.message || "Could not verify your round. Your stake is safe — please try again.";
-      if (errMsg.includes("insufficient funds") || errMsg.includes("INSUFFICIENT_FUNDS")) {
-        errMsg = "The backend verifier wallet has insufficient native CELO gas to resolve on-chain rounds. Please top up the verifier wallet.";
+      if (errMsg.includes("insufficient funds") || errMsg.includes("INSUFFICIENT_FUNDS") || errMsg.includes("op_underfunded")) {
+        errMsg = "The backend verifier wallet has insufficient native XLM to resolve on-chain rounds. Please top up the verifier wallet.";
       }
       setVerifyError(errMsg);
     }

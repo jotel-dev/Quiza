@@ -120,7 +120,7 @@ export default function Home({ onStartQuiz, onStartPractice, onStartDailyChallen
               Ready to <span className="text-[#4F46E5]">test your knowledge?</span>
             </h1>
             <p className="text-base sm:text-lg text-slate-500 mt-4 leading-relaxed max-w-lg">
-              Play a round, stake CELO or cUSD, and become the trivia champion.
+              Play a round, stake XLM or USDC, and become the trivia champion.
             </p>
             <div className="flex flex-wrap items-center gap-4 mt-8">
               <motion.button

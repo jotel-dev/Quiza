@@ -21,7 +21,12 @@ app.get("/api/leaderboard", leaderboard);
 app.post("/api/round-questions", roundQuestions);
 app.get("/api/question-stats", questionStats);
 app.get("/api/og", og);
-app.get("/api/share-card", shareCard);
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", service: "quiza-api" });
+});
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok", service: "quiza-api" });
+});
 
 const PORT = 3001;
 app.listen(PORT, () => {

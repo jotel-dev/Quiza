@@ -12,7 +12,7 @@ export default function ShareModal({ isOpen, onClose, shareData }) {
     total = "10",
     multiplier = "1.5x",
     payout = null,
-    token = "CELO",
+    token = "XLM",
     username = "Player",
     rank = null,
     won = true,
@@ -27,7 +27,7 @@ export default function ShareModal({ isOpen, onClose, shareData }) {
     total: total.toString(),
     multiplier: multiplier || "1.0x",
     payout: payout ? payout.toString() : "",
-    token: token || "CELO",
+    token: token || "XLM",
     username: username || "Player",
     rank: rank ? rank.toString() : "",
     won: won ? "true" : "false",
@@ -38,10 +38,10 @@ export default function ShareModal({ isOpen, onClose, shareData }) {
 
   // Custom high-converting social share message
   const shareText = type === "leaderboard"
-    ? `🏆 I am currently ranked #${rank} on the global Quiza leaderboard! Think you can beat me in Web3 trivia on Celo?`
+    ? `🏆 I am currently ranked #${rank} on the global Quiza leaderboard! Think you can beat me in Web3 trivia on Stellar?`
     : won
     ? `🔥 I just won ${multiplier} my stake scoring ${score}/${total} in Web3 Trivia on Quiza! Can you beat me?`
-    : `🧠 I scored ${score}/${total} in Web3 Trivia on Quiza! Test your knowledge & earn on Celo.`;
+    : `🧠 I scored ${score}/${total} in Web3 Trivia on Quiza! Test your knowledge & earn on Stellar.`;
 
   const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareCardUrl)}`;
   const warpcastUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(shareCardUrl)}`;

@@ -34,4 +34,12 @@ artifacts/
 
 # Database
 data/
+.data/
 *.sqlite*
+
+# Rust / Soroban
+target/
+contracts/quiza/target/
+
+# Scratch
+scratch/

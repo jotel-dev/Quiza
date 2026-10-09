@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Trophy, RotateCcw, Share2, Check, X, Target, Coins, Loader2 } from "lucide-react";
-import { JsonRpcProvider, Contract } from "ethers";
-import { withdrawWinnings, getBalance, CUSD_ADDRESS, QUIZA_CONTRACT_ADDRESS, QUIZA_ABI, CELO_NATIVE_ADDRESS, NETWORK, CELO_NETWORKS } from "../lib/quizaContract";
+import { withdrawWinnings, getBalance, isRoundResolved, CUSD_ADDRESS, CELO_NATIVE_ADDRESS, NETWORK } from "../lib/quizaContract";
 import ShareModal from "../components/ShareModal";
 import { playChaChing } from "../lib/sound";
 
@@ -81,20 +80,16 @@ export default function Results({ result, roundQuestions, stakeInfo, signer, onP
     let attempts = 0;
     const MAX_ATTEMPTS = 20;
 
-    const provider = new JsonRpcProvider(CELO_NETWORKS[NETWORK].rpcUrls[0]);
-
     const check = async () => {
       try {
         const playerAddr = await signer.getAddress();
-        const celoBal = await getBalance(provider, playerAddr, CELO_NATIVE_ADDRESS, NETWORK).catch(() => 0n);
-        const cusdBal = await getBalance(provider, playerAddr, CUSD_ADDRESS[NETWORK], NETWORK).catch(() => 0n);
+        const celoBal = await getBalance(playerAddr, CELO_NATIVE_ADDRESS, NETWORK).catch(() => 0n);
+        const cusdBal = await getBalance(playerAddr, CUSD_ADDRESS[NETWORK], NETWORK).catch(() => 0n);
 
         let roundResolved = false;
         if (stakeInfo?.roundId) {
           try {
-            const contract = new Contract(QUIZA_CONTRACT_ADDRESS[NETWORK], QUIZA_ABI, provider);
-            const r = await contract.rounds(stakeInfo.roundId);
-            if (r && r.resolved) roundResolved = true;
+            roundResolved = await isRoundResolved(stakeInfo.roundId, NETWORK);
           } catch (e) {}
         }
 
@@ -124,11 +119,10 @@ export default function Results({ result, roundQuestions, stakeInfo, signer, onP
     setWithdrawError(null);
     setWithdrawState("withdrawing");
     try {
-      const provider = new JsonRpcProvider(CELO_NETWORKS[NETWORK].rpcUrls[0]);
       const playerAddr = await signer.getAddress();
 
-      const celoBal = await getBalance(provider, playerAddr, CELO_NATIVE_ADDRESS, NETWORK).catch(() => 0n);
-      const cusdBal = await getBalance(provider, playerAddr, CUSD_ADDRESS[NETWORK], NETWORK).catch(() => 0n);
+      const celoBal = await getBalance(playerAddr, CELO_NATIVE_ADDRESS, NETWORK).catch(() => 0n);
+      const cusdBal = await getBalance(playerAddr, CUSD_ADDRESS[NETWORK], NETWORK).catch(() => 0n);
 
       let targetTokenAddress = null;
       if (cusdBal > 0n) {
@@ -136,16 +130,14 @@ export default function Results({ result, roundQuestions, stakeInfo, signer, onP
       } else if (celoBal > 0n) {
         targetTokenAddress = CELO_NATIVE_ADDRESS;
       } else {
-        targetTokenAddress = (stakeInfo?.token === "CELO") ? CELO_NATIVE_ADDRESS : CUSD_ADDRESS[NETWORK];
+        targetTokenAddress = (stakeInfo?.token === "CELO" || stakeInfo?.token === "XLM") ? CELO_NATIVE_ADDRESS : CUSD_ADDRESS[NETWORK];
       }
 
       if (celoBal === 0n && cusdBal === 0n) {
         let roundResolved = false;
         if (stakeInfo?.roundId) {
           try {
-            const contract = new Contract(QUIZA_CONTRACT_ADDRESS[NETWORK], QUIZA_ABI, provider);
-            const r = await contract.rounds(stakeInfo.roundId);
-            if (r && r.resolved) roundResolved = true;
+            roundResolved = await isRoundResolved(stakeInfo.roundId, NETWORK);
           } catch (e) {}
         }
 
@@ -249,7 +241,7 @@ export default function Results({ result, roundQuestions, stakeInfo, signer, onP
                 <div>
                   <p className="text-xs text-slate-400 font-medium">{won ? "You won" : "Stake"}</p>
                   <p className={`text-sm font-bold ${won ? "text-slate-800" : "text-slate-500"}`}>
-                    {won ? `+${payout} ${stakeInfo.token}` : `${stakeInfo.amount ?? (stakeInfo.token === "cUSD" ? 0.001 : 0.01)} ${stakeInfo.token} staked`}
+                    {won ? `+${payout} ${stakeInfo.token}` : `${stakeInfo.amount ?? (stakeInfo.token === "USDC" || stakeInfo.token === "cUSD" ? 0.001 : 0.01)} ${stakeInfo.token} staked`}
                   </p>
                 </div>
               </div>
@@ -356,7 +348,7 @@ export default function Results({ result, roundQuestions, stakeInfo, signer, onP
           total: result.total,
           multiplier,
           payout,
-          token: stakeInfo?.token || "CELO",
+          token: stakeInfo?.token || "XLM",
           won,
           type: "game",
         }}

@@ -1,37 +1,44 @@
-# Quiza 🧠 — Stake. Play. Win.
+ # Quiza 🧠 — Stake. Play. Win.
 
-> **A real-money trivia MiniApp for [MiniPay](https://www.opera.com/products/minipay) on [Celo](https://celo.org)** — Built for **[Proof of Ship Season 2](https://celoplatform.notion.site/)** by Celo Public Goods.
+> **A real-money trivia dApp on [Stellar](https://stellar.org)** — stake XLM or USDC, answer 10 questions, and get paid out from a **Soroban smart contract**. Non-custodial, fast, and fee-light.
 
-[![Celo Mainnet](https://img.shields.io/badge/Celo-Mainnet_Verified-35D07F?style=for-the-badge&logo=celo&logoColor=white)](https://celoscan.io/address/0x81f2150e2aa7A28c788Ee8D3A2609f03566C5142#code)
-[![MiniPay Enabled](https://img.shields.io/badge/MiniPay-Integrated-0052FF?style=for-the-badge&logo=opera&logoColor=white)](https://www.opera.com/products/minipay)
-[![Proof of Ship](https://img.shields.io/badge/Proof_of_Ship-Season_2-F59E0B?style=for-the-badge)](https://celoplatform.notion.site/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black.svg)](https://nextjs.org/)
+[![Stellar](https://img.shields.io/badge/Stellar-Testnet-blue)](https://stellar.org)
+[![Soroban](https://img.shields.io/badge/Soroban-Smart%20Contracts-purple)](https://soroban.stellar.org)
+[![Freighter](https://img.shields.io/badge/Wallet-Freighter-orange)](https://freighter.app)
 
 ---
 
 ## 🌟 Overview
 
-**Quiza** is a ultra-fast, mobile-first Web3 trivia game where players stake **CELO** or **cUSD** to test their knowledge across Math, Geography, History, and General Knowledge. Score high enough to win back your stake plus progressive bonus payouts — settled instantly on the Celo blockchain directly into your MiniPay wallet.
+**Quiza** is a fast, mobile-first Web3 trivia game where players stake **XLM** or **USDC** to test their knowledge across Math, Geography, History, and General Knowledge. Score high enough to win back your stake plus progressive bonus payouts, settled on Stellar through a Soroban escrow contract.
 
-Designed specifically for MiniPay's 16M+ African & global mobile user base, Quiza removes traditional Web3 friction with sub-second Celo transactions, seamless native stablecoin staking, and intuitive gameplay.
+Stellar's ~5 second finality and near-zero fees make small-stake gameplay practical, and wallet sign-in through **Freighter** keeps everything **non-custodial**: only public keys (`G...`) are ever stored, and secret keys are never requested.
 
 ---
 
 ## ✨ Key Features
 
-- 🎮 **Multiple Game Modes**:
-  - **Stake & Win**: Pick your favorite category and difficulty tier.
-  - **Daily Challenge**: 10 fresh questions daily competing for top global ranking.
-  - **Practice Mode**: Risk-free gameplay to hone your skills before staking.
-- 💰 **Progressive Multipliers**:
+- 🎮 **Multiple Game Modes**
+  - **Stake & Win**: Pick a category and difficulty tier.
+  - **Daily Challenge**: 10 fresh questions daily competing for the top global ranking.
+  - **Practice Mode**: Risk-free gameplay before staking.
+- 💰 **Progressive Multipliers**
   - **7 / 10 Correct**: **1.2x** payout
   - **8-9 / 10 Correct**: **1.5x** payout
-  - **10 / 10 Perfect Score**: **2.0x** payout (Double your stake!)
-- 🛡️ **Built-in Player Protections**:
-  - **`claimTimeout` Refund Guarantee**: Players can reclaim their full stake directly from the smart contract if backend resolution ever times out (> 2 hours).
-  - **Anti-Cheat Off-Chain Scoring**: Quiz answer keys are evaluated securely off-chain via backend verifier service, eliminating on-chain answer inspection attacks.
-- ⚡ **EIP-2771 Meta-Transactions Ready**: Architecture configured for gasless staking via relayers.
-- 🎨 **Dynamic Social Sharing**: Automatically generates dynamic SVG share cards (`/api/og`) and OpenGraph preview pages (`/api/share-card`) for instant sharing on X, Telegram, and WhatsApp.
+  - **10 / 10 Perfect Score**: **2.0x** payout (double your stake!)
+- 🔮 **Soroban Escrow Contract**: Stakes are held in a Rust/Wasm contract (`contracts/quiza`) until a round is resolved.
+- 🔒 **100% Non-Custodial**: Only public keys are stored. Players sign every stake and withdrawal in Freighter.
+- 🔑 **StrKey Validation**: Public key checksums are validated at the API boundary.
+- 🛡️ **Timeout Refund Guarantee**: If the backend verifier never resolves a round within 2 hours, players can call `claim_timeout` and reclaim their full stake from the contract.
+- 🕵️ **Anti-Cheat Off-Chain Scoring**: Answer keys never leave the backend. Answers are scored server-side and only the result is submitted on-chain.
+- 🪄 **Wallet (DID) Sign-In**: Challenge-based Freighter sign-in with single-use, expiring nonces.
+- 💸 **Fee-Bump Sponsorship Ready**: Architecture supports Stellar fee-bump transactions so a sponsor can cover fees for new players.
+- 🎨 **Dynamic Social Sharing**: Generated share cards (`/api/og`) and preview pages (`/api/share-card`) for X, Telegram, and WhatsApp.
+- 🧪 **Automated Test Suite**: Vitest for the API and `cargo test` for the contract.
 
 ---
 
@@ -40,158 +47,225 @@ Designed specifically for MiniPay's 16M+ African & global mobile user base, Quiz
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Player as 📱 Player (MiniPay)
-    participant Contract as 📜 Quiza.sol (Celo)
+    actor Player as 🧑 Player (Freighter)
+    participant Contract as 📜 Quiza Contract (Soroban)
     participant Backend as ⚡ Verifier API
-    
-    Player->>Contract: stakeCelo() or stakeToken(cUSD)
-    Contract-->>Player: Staked Event (roundId)
-    Backend->>Player: Deliver 10 Questions (Answers hidden)
-    Player->>Backend: Submit Answers + roundId + secretToken
-    Backend->>Backend: Score Answers Off-Chain
-    Backend->>Contract: resolve(roundId, won, score)
-    Contract->>Contract: Credit Payout to Player Balance
-    Player->>Contract: withdraw(token) -> Instant Wallet Payout
+
+    Player->>Contract: stake(token, amount) — signed in Freighter
+    Contract-->>Player: Staked event (round_id)
+    Backend->>Player: Deliver 10 questions (answers hidden)
+    Player->>Backend: Submit answers + round_id + session token
+    Backend->>Backend: Score answers off-chain
+    Backend->>Contract: resolve(round_id, won, score)
+    Contract->>Contract: Credit payout to player balance
+    Player->>Contract: withdraw(token) → wallet payout
 ```
 
-1. **Connect**: Tap in using Opera MiniPay wallet (or any Celo-compatible wallet).
-2. **Stake**: Choose **CELO** or **cUSD** (e.g. 0.01 CELO or 0.001 cUSD).
+1. **Connect**: Sign in with your Freighter wallet.
+2. **Stake**: Choose **XLM** or **USDC** (e.g. 5 XLM).
 3. **Play**: Answer 10 randomized trivia questions against the clock.
-4. **Win**: Score 7/10 or higher to win up to **2.0x** your stake!
-5. **Withdraw**: Winnings accumulate on-chain and are withdrawable at any time.
+4. **Win**: Score 7/10 or higher to win up to **2.0x** your stake.
+5. **Withdraw**: Winnings accumulate in the contract and are withdrawable any time.
 
 ---
 
-## 📜 Smart Contract & Mainnet Deployment
+## 📜 Smart Contract (Soroban)
 
-The core contract [`Quiza.sol`](./contracts/Quiza.sol) manages player staking, verifier resolution, balance tracking, and withdrawals.
+The core contract lives in [`contracts/quiza`](contracts/quiza) and manages staking, verifier resolution, balance tracking, and withdrawals. XLM and USDC are both handled through Stellar Asset Contract (SAC) token interfaces.
 
-| Network | Contract Address | Explorer Link |
+| Network | Contract ID | Explorer |
 |---|---|---|
-| **Celo Mainnet** | `0x81f2150e2aa7A28c788Ee8D3A2609f03566C5142` | [View on Celoscan ↗](https://celoscan.io/address/0x81f2150e2aa7A28c788Ee8D3A2609f03566C5142#code) |
-| **Celo Alfajores Testnet** | Configurable in `.env` | [Celoscan Testnet ↗](https://alfajores.celoscan.io) |
+| **Stellar Testnet** | Set via `QUIZA_CONTRACT_ID` in `.env` | [Stellar Expert (Testnet) ↗](https://stellar.expert/explorer/testnet) |
+| **Stellar Mainnet** | _Not deployed yet_ | [Stellar Expert ↗](https://stellar.expert/explorer/public) |
 
 ### Core Methods
 
-- `stakeCelo()` — Stake native CELO to create a new quiz round.
-- `stakeToken(address token, uint256 amount)` — Stake cUSD tokens (requires approval).
-- `resolve(uint256 roundId, bool won, uint8 score)` — Called by authorized backend verifier to payout winning rounds based on progressive multiplier tiers.
-- `claimTimeout(uint256 roundId)` — Allows players to claim a 100% refund of their stake if a round remains unresolved after 2 hours.
-- `withdraw(address token)` — Withdraw accumulated winnings to player's wallet address.
+- `stake(player, token, amount)` — Lock a stake and open a new quiz round.
+- `resolve(round_id, won, score)` — Called by the authorized backend verifier to credit winnings using the multiplier tiers.
+- `claim_timeout(round_id)` — Refund 100% of the stake if a round stays unresolved for 2 hours.
+- `withdraw(player, token)` — Send accumulated winnings to the player's wallet.
 
 ---
 
-## 🏗️ Project Architecture
+## 🗂 Project Structure
 
 ```
 quiza/
+├── apps/
+│   ├── web/                   # Next.js + React + Tailwind CSS dashboard & game UI
+│   └── api/                   # Node.js + Fastify REST API (verifier, leaderboard, share cards)
 ├── contracts/
-│   └── Quiza.sol              # Smart contract (ERC2771Context, Ownable, ReentrancyGuard)
+│   └── quiza/                 # Soroban smart contract (Rust → Wasm)
+├── packages/
+│   └── shared/                # Shared TypeScript types & Stellar helpers
 ├── scripts/
-│   ├── deploy.js              # Hardhat deployment script for Celo networks
-│   ├── dev-runner.js          # Concurrent dev runner (Vite + Express API)
-│   └── fund-verifier.js       # Utility script to check/fund verifier gas
-├── src/
-│   ├── pages/                 # Home, Quiz, Results, Leaderboard, Setup, Profile screens
-│   ├── components/            # StakeModal, ShareModal, Navbar, UI components
-│   ├── lib/                   # quizaContract.js, firebase.js, web3 integration
-│   └── App.jsx                # Main React router & global state management
-├── api/
-│   ├── round-questions.js     # Serves randomized questions (without answers)
-│   ├── verify-round.js        # Scores answers & submits resolve() on-chain
-│   ├── verify-practice.js     # Zero-stake practice mode verification
-│   ├── og.js                  # Dynamic SVG OpenGraph image generator
-│   ├── share-card.js          # Social share HTML preview card generator
-│   └── leaderboard.js         # Global rankings & score syncing
-├── hardhat.config.js          # Celo Mainnet & Alfajores network configs
-├── index.html                 # App entry + Talent App verification tag
-└── server-dev.js              # Local Express API server for local dev
+│   ├── deploy-contract.ts     # Build & deploy the contract to Stellar networks
+│   ├── fund-verifier.ts       # Fund the verifier account via Friendbot (testnet)
+│   └── seed-questions.ts      # Seed question bank into PostgreSQL
+├── docs/                      # Architecture & API documentation
+├── docker-compose.yml         # Local PostgreSQL
+├── CONTRIBUTING.md
+├── ROADMAP.md
+└── LICENSE
 ```
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Smart Contracts**: Solidity `^0.8.20`, OpenZeppelin Contracts, Hardhat
-- **Chain & Wallet Integration**: Celo Mainnet, EIP-1193 MiniPay Provider, Ethers.js v6
-- **Frontend**: React 18, Vite, Tailwind CSS, Framer Motion, Lucide Icons
-- **Backend & Verification**: Node.js, Express, Firebase Firestore (Leaderboards & Session Tokens)
-- **Deployment**: Vercel (Frontend & Serverless API), Celoscan Verification
+- **Blockchain**: Stellar (Horizon + Soroban RPC), Testnet by default
+- **Smart Contracts**: Rust, Soroban SDK, compiled to Wasm
+- **Wallet**: Freighter (`@stellar/freighter-api`), `@stellar/stellar-sdk`
+- **Frontend**: Next.js, React, TypeScript, Tailwind CSS, Framer Motion
+- **Backend**: Node.js, TypeScript, Fastify REST API
+- **Database**: PostgreSQL (rounds, sessions, leaderboards)
+- **Tooling**: Turborepo monorepo, Vitest, Docker Compose
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
 
-- Node.js `^18.0.0`
-- npm `^9.0.0`
+| Tool             | Version                |
+| ---------------- | ---------------------- |
+| Node.js          | ≥ 20.x                 |
+| npm              | Latest                 |
+| Docker           | For local PostgreSQL   |
+| Rust + Cargo     | Latest stable (for contracts) |
+| Stellar CLI      | Latest                 |
+| Freighter Wallet | Browser extension      |
 
-### Installation & Local Setup
+### 1. Clone & Install
 
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/your-username/quiza.git
-   cd quiza
-   ```
+```bash
+git clone https://github.com/your-username/quiza.git
+cd quiza
+npm install
+```
 
-2. **Install dependencies**:
-   ```bash
-   npm install
-   ```
+### 2. Start Local Database
 
-3. **Configure Environment Variables**:
-   Copy `.env.example` to `.env` and fill in your values:
-   ```bash
-   cp .env.example .env
-   ```
-   ```env
-   DEPLOYER_PRIVATE_KEY=your_private_key
-   QUIZA_VERIFIER_ADDRESS=0x_verifier_wallet_address
-   QUIZA_VERIFIER_PRIVATE_KEY=your_verifier_private_key
-   QUIZA_NETWORK=mainnet
-   CELOSCAN_API_KEY=your_celoscan_api_key
-   ```
+```bash
+docker compose up -d
+npm run db:push
+```
 
-4. **Start Development Environment**:
-   Run frontend Vite dev server and Express API simultaneously:
-   ```bash
-   npm run dev:all
-   ```
-   - App will be running at `http://localhost:5173`
-   - Local API running at `http://localhost:3001`
+### 3. Configure Environment
+
+```bash
+cp apps/api/.env.example apps/api/.env
+cp apps/web/.env.example apps/web/.env.local
+```
+
+### 4. Launch the Stack
+
+```bash
+npx turbo dev
+```
+
+Or run components individually:
+
+```bash
+npm run dev:api   # Fastify API on http://localhost:3001
+npm run dev:web   # Next.js app on http://localhost:3000
+```
+
+### 5. Build & Deploy the Contract (Testnet)
+
+```bash
+cd contracts/quiza
+stellar contract build
+stellar contract deploy \
+  --wasm target/wasm32v1-none/release/quiza.wasm \
+  --source verifier-dev \
+  --network testnet
+```
+
+Copy the returned contract ID into `QUIZA_CONTRACT_ID` in both `.env` files.
 
 ---
 
-## 🧪 Testing & Verification
+## 🔑 Environment Variables
 
-### Run Linter
-```bash
-npx oxlint --ignore-path .gitignore .
+### Web (`apps/web/.env.local`)
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:3001
+NEXT_PUBLIC_STELLAR_NETWORK=testnet
+NEXT_PUBLIC_HORIZON_URL=https://horizon-testnet.stellar.org
+NEXT_PUBLIC_SOROBAN_RPC_URL=https://soroban-testnet.stellar.org
+NEXT_PUBLIC_QUIZA_CONTRACT_ID=your_contract_id
 ```
 
-### Compile Smart Contracts
-```bash
-npm run compile
+### API (`apps/api/.env`)
+
+```env
+PORT=3001
+DATABASE_URL=postgresql://quiza:quiza_dev@localhost:5432/quiza
+JWT_SECRET=replace-with-a-long-random-secret
+STELLAR_NETWORK=testnet
+HORIZON_URL=https://horizon-testnet.stellar.org
+SOROBAN_RPC_URL=https://soroban-testnet.stellar.org
+QUIZA_CONTRACT_ID=your_contract_id
+QUIZA_VERIFIER_PUBLIC_KEY=G...
+QUIZA_VERIFIER_SECRET=S...   # server-side only, authorizes resolve() calls
+ALLOWED_ORIGINS=http://localhost:3000
 ```
 
-### Verify Contract on Celoscan (Mainnet)
+> ⚠️ The verifier secret is the **only** secret key in the system and belongs to the backend operator. Player secret keys are never requested or stored.
+
+---
+
+## 🧪 Get Testnet XLM
+
+1. Install [Freighter Wallet](https://freighter.app).
+2. Switch to **Testnet** in Freighter settings.
+3. Fund your public key with [Stellar Friendbot](https://friendbot.stellar.org).
+4. Receive 10,000 test XLM instantly.
+
+To fund the verifier account:
+
 ```bash
-npm run verify:mainnet -- 0x81f2150e2aa7A28c788Ee8D3A2609f03566C5142 0x765DE816845861e75A25fCA122bb6898B8B1282a <VERIFIER_ADDRESS>
+npx tsx scripts/fund-verifier.ts
 ```
 
 ---
 
-## 🏅 Proof of Ship Season 2
+## 🧪 Testing
 
-Quiza is actively participating in **Celo's Proof of Ship Season 2**.
-
-- **Talent App Project Verification**: Tag embedded in [`index.html`](./index.html#L7).
-- **Verified Smart Contract**: Deployed & verified on Celo Mainnet (`0x81f2150e2aa7A28c788Ee8D3A2609f03566C5142`).
-- **MiniPay Hook Integrated**: Complete provider detection and native flow optimized for Opera MiniPay.
+| Suite              | Command                         | Notes                               |
+| ------------------ | ------------------------------- | ----------------------------------- |
+| API unit tests     | `npm run test:api`              | Vitest                              |
+| Web unit tests     | `npm run test:web`              | Component and hook tests            |
+| Contract tests     | `cd contracts/quiza && cargo test` | Soroban SDK test environment     |
+| Lint               | `npm run lint`                  | ESLint + TypeScript typecheck       |
 
 ---
+
+## 📚 Documentation
+
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** — System design, data flow, and database schema
+- **[docs/contract-deployment.md](docs/contract-deployment.md)** — Deploying the Soroban contract
+- **[docs/api-documentation.md](docs/api-documentation.md)** — REST API reference
+- **[docs/environment-variables.md](docs/environment-variables.md)** — Full variable list and validation rules
+
+---
+
+## 🤝 Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) to get started. All skill levels welcome!
+
+## 🗺 Roadmap
+
+See [ROADMAP.md](ROADMAP.md) for planned features.
+
+## 💬 Community & Support
+
+Join our community to ask questions, chat with maintainers, and follow new releases:
+
+👉 **[Join Quiza on Telegram](t.me/nullifiersystem/1)**
 
 ## 📄 License
 
-This project is licensed under the [MIT License](LICENSE).
+Released under the [MIT License](LICENSE).
