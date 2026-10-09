@@ -1,5 +1,6 @@
-import React from "react";
-import { User, Wallet, Trophy, Target, Flame, Users, CheckCircle2, XCircle } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { User, Wallet, CheckCircle2, XCircle } from "lucide-react";
+import { getRefundableRounds, claimRefund, retryWithdrawRefund, getExplorerTxUrl } from "../lib/quizaContract.js";
 
 function GlassCard({ children, className = "" }) {
   return (
@@ -10,6 +11,72 @@ function GlassCard({ children, className = "" }) {
 }
 
 export default function Profile({ stats, recentGames, walletAddress, onConnectWallet, onDisconnectWallet }) {
+  const [refundableRounds, setRefundableRounds] = useState([]);
+  const [claimingRoundId, setClaimingRoundId] = useState(null);
+  const [withdrawingRoundId, setWithdrawingRoundId] = useState(null);
+  const [withdrawPendingRounds, setWithdrawPendingRounds] = useState({});
+  const [claimedTxs, setClaimedTxs] = useState({});
+  const [claimErrors, setClaimErrors] = useState({});
+
+  useEffect(() => {
+    if (!walletAddress) {
+      setRefundableRounds([]);
+      return;
+    }
+    let isMounted = true;
+    getRefundableRounds(walletAddress)
+      .then((rounds) => {
+        if (isMounted) {
+          setRefundableRounds(rounds);
+          const pending = {};
+          rounds.forEach((r) => {
+            if (r.withdrawPending) pending[r.roundId] = true;
+          });
+          setWithdrawPendingRounds((prev) => ({ ...prev, ...pending }));
+        }
+      })
+      .catch((err) => {
+        console.warn("Failed to load refundable rounds:", err);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [walletAddress]);
+
+  const handleClaim = async (roundId) => {
+    setClaimingRoundId(roundId);
+    setClaimErrors((prev) => ({ ...prev, [roundId]: null }));
+    try {
+      const res = await claimRefund(roundId);
+      const txHash = res?.withdrawTxHash || res?.claimTxHash || "confirmed";
+      const txUrl = getExplorerTxUrl(txHash);
+      setClaimedTxs((prev) => ({ ...prev, [roundId]: txUrl }));
+      setWithdrawPendingRounds((prev) => ({ ...prev, [roundId]: false }));
+    } catch (err) {
+      if (err?.withdrawPending) {
+        setWithdrawPendingRounds((prev) => ({ ...prev, [roundId]: true }));
+      }
+      setClaimErrors((prev) => ({ ...prev, [roundId]: err?.message || "Failed to claim refund" }));
+    } finally {
+      setClaimingRoundId(null);
+    }
+  };
+
+  const handleRetryWithdraw = async (round) => {
+    const roundId = round.roundId;
+    setWithdrawingRoundId(roundId);
+    setClaimErrors((prev) => ({ ...prev, [roundId]: null }));
+    try {
+      const txHash = await retryWithdrawRefund(round.token);
+      const txUrl = getExplorerTxUrl(txHash);
+      setClaimedTxs((prev) => ({ ...prev, [roundId]: txUrl }));
+      setWithdrawPendingRounds((prev) => ({ ...prev, [roundId]: false }));
+    } catch (err) {
+      setClaimErrors((prev) => ({ ...prev, [roundId]: err?.message || "Failed to withdraw" }));
+    } finally {
+      setWithdrawingRoundId(null);
+    }
+  };
   return (
     <div className="flex-1 p-4 sm:p-6 overflow-y-auto min-h-full flex flex-col">
       <div className="flex items-center gap-3 sm:gap-4 mb-8">
@@ -83,6 +150,76 @@ export default function Profile({ stats, recentGames, walletAddress, onConnectWa
 
         {/* Right Column - Recent History */}
         <div className="space-y-6">
+          {walletAddress && (
+            <GlassCard className="p-6">
+              <h2 className="text-lg font-bold text-slate-800 mb-4">Unresolved Staked Rounds</h2>
+              {refundableRounds.length > 0 ? (
+                <div className="space-y-3">
+                  {refundableRounds.map((round) => {
+                    const isBusy = claimingRoundId !== null || withdrawingRoundId !== null;
+                    return (
+                      <div
+                        key={round.roundId}
+                        className="flex items-center justify-between p-4 rounded-xl bg-slate-50 border border-slate-100 hover:border-indigo-100 hover:bg-indigo-50/30 transition"
+                      >
+                        <div>
+                          <p className="font-bold text-slate-800">
+                            {round.roundId.toString().startsWith("balance-")
+                              ? `Pending ${round.token} Refund`
+                              : `Round #${round.roundId}`}
+                          </p>
+                          <p className="text-xs text-slate-400 mt-0.5">
+                            {withdrawPendingRounds[round.roundId]
+                              ? `${round.amount} ${round.token} - Claimed, withdraw pending`
+                              : `${round.amount} ${round.token} - older than 2 hours`}
+                          </p>
+                          {claimErrors[round.roundId] && (
+                            <p className="text-sm font-bold text-red-500 hover:text-red-600 transition">
+                              {claimErrors[round.roundId]}
+                            </p>
+                          )}
+                        </div>
+                        <div>
+                          {claimedTxs[round.roundId] ? (
+                            <a
+                              href={claimedTxs[round.roundId]}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-[#4F46E5] text-sm font-bold rounded-full hover:bg-indigo-100 transition"
+                            >
+                              View Refund Tx
+                            </a>
+                          ) : withdrawPendingRounds[round.roundId] ? (
+                            <button
+                              disabled={isBusy}
+                              onClick={() => handleRetryWithdraw(round)}
+                              className="flex items-center gap-1.5 bg-[#4F46E5] text-white text-xs font-semibold px-3 py-2 rounded-xl shadow-md shadow-indigo-200 hover:opacity-90 transition active:scale-95"
+                            >
+                              {withdrawingRoundId === round.roundId ? "Withdrawing..." : "Retry Withdraw"}
+                            </button>
+                          ) : (
+                            <button
+                              disabled={isBusy}
+                              onClick={() => handleClaim(round.roundId)}
+                              className="flex items-center gap-1.5 bg-[#4F46E5] text-white text-xs font-semibold px-3 py-2 rounded-xl shadow-md shadow-indigo-200 hover:opacity-90 transition active:scale-95"
+                            >
+                              {claimingRoundId === round.roundId ? "Claiming..." : "Claim Refund"}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <>
+                  <p className="text-slate-500 font-medium">No refundable rounds found</p>
+                  <p className="text-sm text-slate-400 mt-1">Rounds older than 2 hours will appear here for refund.</p>
+                </>
+              )}
+            </GlassCard>
+          )}
+
           <GlassCard className="p-6 sm:p-8 h-full">
             <h2 className="text-xl font-bold text-slate-800 mb-6">Match History</h2>
             
