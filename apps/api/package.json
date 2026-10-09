@@ -24,7 +24,7 @@
     "@types/node": "^20.14.9",
     "@types/pg": "^8.11.6",
     "tsx": "^4.16.2",
-    "typescript": "^5.5.2",
+    "typescript": "^7.0.2",
     "vitest": "^2.0.5"
   }
 }
