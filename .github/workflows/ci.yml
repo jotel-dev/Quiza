@@ -63,8 +63,10 @@ jobs:
           node-version: 20
           cache: "npm"
 
-      - name: Install Backend Dependencies
-        run: npm --prefix apps/api ci
+      - name: Install Dependencies
+        run: |
+          npm ci
+          npm --prefix apps/api ci
 
       - name: Run Vitest API Suite
         env:
