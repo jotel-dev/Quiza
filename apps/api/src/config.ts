@@ -31,7 +31,7 @@ const configSchema = z.object({
   STELLAR_NETWORK_PASSPHRASE: z.string().default("Test SDF Network ; September 2015"),
   SOROBAN_RPC_URL: z.string().url().default("https://soroban-testnet.stellar.org"),
   HORIZON_URL: z.string().url().default("https://horizon-testnet.stellar.org"),
-  PUBLIC_BASE_URL: z.string().optional().default("https://quiza.app"),
+  PUBLIC_BASE_URL: z.string().optional().default("http://localhost:5173"),
   DATABASE_URL: z.string().optional(),
 });
 

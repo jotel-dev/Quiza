@@ -1,5 +1,6 @@
 import { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
+import { config } from "../config.js";
 
 function escapeXml(str: any): string {
   if (str === null || str === undefined) return "";
@@ -63,6 +64,18 @@ export const ogRoute: FastifyPluginAsync = async (fastify) => {
     const accentColor = isWin ? "#F59E0B" : "#4F46E5";
     const badgeBg = isWin ? "#FEF3C7" : "#EEF2FF";
     const badgeText = isWin ? "#92400E" : "#3730A3";
+
+    let configuredHost = "";
+    try {
+      if (config.PUBLIC_BASE_URL) {
+        configuredHost = new URL(config.PUBLIC_BASE_URL).host;
+      }
+    } catch {
+      configuredHost = "";
+    }
+    const bannerText = configuredHost
+      ? `Play &amp; Stake on Quiza • ${escapeXml(configuredHost)}`
+      : "Play &amp; Stake on Quiza";
 
     const svg = `
 <svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
@@ -137,7 +150,7 @@ export const ogRoute: FastifyPluginAsync = async (fastify) => {
 
   <!-- Bottom CTA Banner -->
   <text x="600" y="590" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="700" fill="#94A3B8" text-anchor="middle">
-    Play &amp; Stake on Quiza • quiza.app
+    ${bannerText}
   </text>
 </svg>
     `.trim();
