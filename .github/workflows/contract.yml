@@ -1,0 +1,60 @@
+name: "Soroban Smart Contract CI"
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "contracts/quiza/**"
+      - ".github/workflows/contract.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "contracts/quiza/**"
+      - ".github/workflows/contract.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-lint:
+    name: "Soroban Test & Clippy"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts/quiza
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32v1-none
+          components: clippy, rustfmt
+
+      - name: Cache Cargo Dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            contracts/quiza/target/
+          key: ${{ runner.os }}-cargo-soroban-${{ hashFiles('contracts/quiza/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-soroban-
+
+      - name: Check Formatting
+        run: cargo fmt --check
+
+      - name: Run Clippy Linter
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Run Contract Tests
+        run: cargo test -- --nocapture
+
+      - name: Build Contract Wasm
+        run: cargo build --target wasm32v1-none --release

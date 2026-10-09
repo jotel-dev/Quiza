@@ -1,0 +1,69 @@
+name: "Bug Report"
+description: "Report a bug or unexpected behavior in Quiza"
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting an issue! Please search existing issues before submitting to avoid duplicates.
+        For security vulnerabilities involving funds or keys, see [SECURITY.md](https://github.com/jotel-dev/Quiza/blob/main/SECURITY.md).
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected Component
+      description: Which part of Quiza is experiencing the issue?
+      options:
+        - "Smart Contract (Soroban / contracts/quiza)"
+        - "Backend API (Fastify / apps/api)"
+        - "Frontend Web UI (React / src/)"
+        - "Freighter Wallet Integration"
+        - "Documentation / Developer Tooling"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear and concise description of the bug.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Step-by-step instructions to reproduce the behavior.
+      placeholder: |
+        1. Connect Freighter on Testnet
+        2. Stake 5 XLM on Geography
+        3. Submit answers...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually occurred? Include error messages or console logs.
+    validations:
+      required: true
+  - type: input
+    id: transaction
+    attributes:
+      label: Relevant Transaction Hash or Round ID
+      description: Stellar Expert link or numeric round ID (if applicable).
+      placeholder: "e.g. 89ab... or Round #102"
+  - type: input
+    id: environment
+    attributes:
+      label: Environment & Versions
+      description: Browser, OS, and Freighter version.
+      placeholder: "e.g. Chrome 128, macOS Sonoma, Freighter 6.0.1"
+    validations:
+      required: true

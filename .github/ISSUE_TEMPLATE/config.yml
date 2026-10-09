@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: "Security Vulnerability Reporting"
+    url: "https://github.com/jotel-dev/Quiza/blob/main/SECURITY.md"
+    about: "For reporting sensitive vulnerabilities or key exposure, please consult our security policy."
+  - name: "Community Telegram"
+    url: "https://t.me/nullifiersystem/1"
+    about: "Join the community to chat with players, maintainers, and other developers."
+  - name: "GitHub Discussions"
+    url: "https://github.com/jotel-dev/Quiza/discussions"
+    about: "Ask architectural questions, discuss RFCs, and share community ideas."

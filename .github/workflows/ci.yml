@@ -1,0 +1,80 @@
+name: "CI Pipeline"
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-build:
+    name: "Lint & Frontend Build"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install Dependencies
+        run: |
+          npm ci
+          npm --prefix apps/api ci
+
+      - name: Run Root Linter
+        run: npm run lint
+
+      - name: Build Frontend Production Bundle
+        run: npm run build
+
+  api-tests:
+    name: "Fastify API Integration Tests"
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: quiza
+          POSTGRES_PASSWORD: quiza_dev
+          POSTGRES_DB: quiza
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install Backend Dependencies
+        run: npm --prefix apps/api ci
+
+      - name: Run Vitest API Suite
+        env:
+          DATABASE_URL: postgresql://quiza:quiza_dev@localhost:5432/quiza
+          QUIZA_ROUND_SECRET: test-secret-key-for-ci-runs
+          QUIZA_CONTRACT_ID: CBD7PCUZDB22HJV7LHO4QHRIEZXSWED5OHJ256623PVLT46XGSKSC7IV
+          QUIZA_VERIFIER_PUBLIC_KEY: GCMKX5CZ4UCWKKUMGQ3WDEJ4AFCNCCJW5R54IWZH7BE6RK6H2KG45QCU
+          QUIZA_VERIFIER_SECRET_KEY: SDXKNQHYD24GLMXASVWXZ23UZ6XXMCKBDRJ7KM6A6OSZC5YF65KKIEO3
+          STELLAR_NETWORK: testnet
+          STELLAR_NETWORK_PASSPHRASE: "Test SDF Network ; September 2015"
+          HORIZON_URL: https://horizon-testnet.stellar.org
+          SOROBAN_RPC_URL: https://soroban-testnet.stellar.org
+        run: npm --prefix apps/api test

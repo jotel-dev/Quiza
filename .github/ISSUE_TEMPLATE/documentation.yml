@@ -1,0 +1,37 @@
+name: "Documentation Improvement"
+description: "Suggest improvements, fixes, or additions to Quiza documentation"
+title: "[Docs]: "
+labels: ["documentation", "good first issue"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Accurate, high-quality documentation is critical for developers and players alike.
+  - type: input
+    id: location
+    attributes:
+      label: Documentation Page or File Path
+      description: Where is the documentation located?
+      placeholder: "e.g. docs/smart-contracts.md or README.md"
+    validations:
+      required: true
+  - type: textarea
+    id: issue
+    attributes:
+      label: Description of the Problem or Missing Information
+      description: What is inaccurate, outdated, unclear, or missing?
+    validations:
+      required: true
+  - type: textarea
+    id: suggested_fix
+    attributes:
+      label: Suggested Change
+      description: How should the documentation be updated?
+    validations:
+      required: true
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: "I am willing to submit a pull request to fix this documentation issue."

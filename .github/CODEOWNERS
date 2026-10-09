@@ -1,0 +1,23 @@
+# Global repository maintainers
+* @jotel-dev
+
+# Smart Contracts (Rust / Soroban)
+/contracts/quiza/ @jotel-dev
+
+# Backend API (Fastify / TypeScript / PostgreSQL)
+/apps/api/ @jotel-dev
+
+# Frontend Web Application (React / Vite)
+/src/ @jotel-dev
+/index.html @jotel-dev
+/vite.config.js @jotel-dev
+/tailwind.config.js @jotel-dev
+
+# Documentation & Specifications
+/docs/ @jotel-dev
+/*.md @jotel-dev
+
+# Security & CI/CD Pipelines
+/.github/ @jotel-dev
+/SECURITY.md @jotel-dev
+/scripts/ @jotel-dev

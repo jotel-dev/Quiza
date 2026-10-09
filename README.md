@@ -1,271 +1,242 @@
- # Quiza 🧠 — Stake. Play. Win.
+# Quiza 🧠 — Stake. Play. Win.
 
-> **A real-money trivia dApp on [Stellar](https://stellar.org)** — stake XLM or USDC, answer 10 questions, and get paid out from a **Soroban smart contract**. Non-custodial, fast, and fee-light.
+> **High-throughput, non-custodial Web3 skill gaming on [Stellar](https://stellar.org)**. Stake XLM or USDC, test your knowledge in 10 fast-paced trivia questions, and claim progressive payouts directly from a **Soroban smart contract**. Zero custody, sub-5-second finality, and negligible fees.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
-[![Next.js](https://img.shields.io/badge/Next.js-16-black.svg)](https://nextjs.org/)
-[![Stellar](https://img.shields.io/badge/Stellar-Testnet-blue)](https://stellar.org)
-[![Soroban](https://img.shields.io/badge/Soroban-Smart%20Contracts-purple)](https://soroban.stellar.org)
-[![Freighter](https://img.shields.io/badge/Wallet-Freighter-orange)](https://freighter.app)
+[![Vite](https://img.shields.io/badge/Vite-8.x-646CFF.svg)](https://vitejs.dev/)
+[![React](https://img.shields.io/badge/React-19-61DAFB.svg)](https://react.dev/)
+[![Fastify](https://img.shields.io/badge/Fastify-5.x-000000.svg)](https://fastify.io/)
+[![Stellar Testnet](https://img.shields.io/badge/Stellar-Testnet-08B5E5.svg)](https://stellar.org)
+[![Soroban](https://img.shields.io/badge/Soroban-Rust%20Wasm-purple.svg)](https://soroban.stellar.org)
+[![Freighter](https://img.shields.io/badge/Wallet-Freighter-orange.svg)](https://freighter.app)
 
 ---
 
-## 🌟 Overview
+## 🌟 Executive Overview
 
-**Quiza** is a fast, mobile-first Web3 trivia game where players stake **XLM** or **USDC** to test their knowledge across Math, Geography, History, and General Knowledge. Score high enough to win back your stake plus progressive bonus payouts, settled on Stellar through a Soroban escrow contract.
+**Quiza** is an open-source decentralized trivia platform engineered for fast, mobile-friendly competitive gaming on the Stellar blockchain. Players stake native **XLM** or **USDC** across categories including Mathematics, Geography, History, and General Knowledge. Achieving 7 or more correct answers unlocks payouts up to **2.0x** funded from an automated house liquidity pool managed entirely by a Soroban smart contract.
 
-Stellar's ~5 second finality and near-zero fees make small-stake gameplay practical, and wallet sign-in through **Freighter** keeps everything **non-custodial**: only public keys (`G...`) are ever stored, and secret keys are never requested.
+### Architectural Highlights
 
----
-
-## ✨ Key Features
-
-- 🎮 **Multiple Game Modes**
-  - **Stake & Win**: Pick a category and difficulty tier.
-  - **Daily Challenge**: 10 fresh questions daily competing for the top global ranking.
-  - **Practice Mode**: Risk-free gameplay before staking.
-- 💰 **Progressive Multipliers**
-  - **7 / 10 Correct**: **1.2x** payout
-  - **8-9 / 10 Correct**: **1.5x** payout
-  - **10 / 10 Perfect Score**: **2.0x** payout (double your stake!)
-- 🔮 **Soroban Escrow Contract**: Stakes are held in a Rust/Wasm contract (`contracts/quiza`) until a round is resolved.
-- 🔒 **100% Non-Custodial**: Only public keys are stored. Players sign every stake and withdrawal in Freighter.
-- 🔑 **StrKey Validation**: Public key checksums are validated at the API boundary.
-- 🛡️ **Timeout Refund Guarantee**: If the backend verifier never resolves a round within 2 hours, players can call `claim_timeout` and reclaim their full stake from the contract.
-- 🕵️ **Anti-Cheat Off-Chain Scoring**: Answer keys never leave the backend. Answers are scored server-side and only the result is submitted on-chain.
-- 🪄 **Wallet (DID) Sign-In**: Challenge-based Freighter sign-in with single-use, expiring nonces.
-- 💸 **Fee-Bump Sponsorship Ready**: Architecture supports Stellar fee-bump transactions so a sponsor can cover fees for new players.
-- 🎨 **Dynamic Social Sharing**: Generated share cards (`/api/og`) and preview pages (`/api/share-card`) for X, Telegram, and WhatsApp.
-- 🧪 **Automated Test Suite**: Vitest for the API and `cargo test` for the contract.
+- 🔒 **100% Non-Custodial**: Player secret keys (`S...`) are never requested or stored. All transactions and session challenges are signed directly inside the player's Freighter wallet extension.
+- 📐 **Strict Liquidity Accounting Invariant**: Real token balances in the contract are mathematically bounded at all times:
+  $$\text{Contract Balance} == \text{pool} + \text{locked} + \text{owed}$$
+- 🛡️ **Guaranteed Timeout Refund**: If a round remains unresolved after 2 hours (7,200 seconds), players can call `claim_timeout` directly on-chain to reclaim 100% of their stake without backend assistance.
+- 🕵️ **Anti-Cheat Off-Chain Scoring**: Trivia question answer keys never leave the server. Player answer selections are evaluated by the backend verifier, which signs and submits the on-chain settlement.
+- 🪄 **SEP-53 Challenge Authentication**: Single-use cryptographic nonces prevent third-party griefing attacks and authenticate round questions with 15-minute expiring session tokens.
+- ⚡ **Sub-5-Second Settlement**: Native Stellar consensus ensures near-instant settlement without block reorgs.
 
 ---
 
-## 🎮 How It Works
+## 🎮 Game Modes & Multiplier Tiers
+
+| Game Mode | Mechanics | Target Audience |
+| :--- | :--- | :--- |
+| **Stake & Win** | Choose token (XLM / USDC), category, and stake amount. 10 timed questions. | Competitive players seeking crypto payouts |
+| **Daily Challenge** | 10 synchronized daily questions. Global daily leaderboard competition. | Daily active users & community ranking |
+| **Practice Mode** | Free-play mode without wallet popups or signatures. | Newcomers exploring gameplay |
+
+### Payout Multipliers
+
+| Final Score (out of 10) | Payout Multiplier | Net Profit |
+| :---: | :---: | :---: |
+| **10 / 10 (Perfect)** | **2.0x** | **+100%** (Double your stake) |
+| **8 – 9 / 10** | **1.5x** | **+50%** |
+| **7 / 10** | **1.2x** | **+20%** |
+| **0 – 6 / 10** | **0.0x** | Stake retained in house liquidity pool |
+
+---
+
+## 🏗️ System Architecture
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Player as 🧑 Player (Freighter)
-    participant Contract as 📜 Quiza Contract (Soroban)
-    participant Backend as ⚡ Verifier API
+    actor Player as 🧑 Player (Freighter Wallet)
+    participant UI as 🖥️ Vite Frontend (React 19)
+    participant API as ⚡ Fastify Backend (Port 3001)
+    participant DB as 🐘 PostgreSQL Database
+    participant Contract as 📜 QuizaContract (Soroban Testnet)
 
-    Player->>Contract: stake(token, amount) — signed in Freighter
-    Contract-->>Player: Staked event (round_id)
-    Backend->>Player: Deliver 10 questions (answers hidden)
-    Player->>Backend: Submit answers + round_id + session token
-    Backend->>Backend: Score answers off-chain
-    Backend->>Contract: resolve(round_id, won, score)
-    Contract->>Contract: Credit payout to player balance
-    Player->>Contract: withdraw(token) → wallet payout
+    Note over Player,UI: 1. Authentication & Staking
+    Player->>Contract: stake(player, token, amount) [Signed in Freighter]
+    Contract-->>Player: RoundOpened (round_id)
+    Player->>API: GET /api/challenge?address=G...
+    API-->>Player: Challenge Nonce
+    Player->>Player: Sign nonce via Freighter SEP-53
+    Player->>API: POST /api/session {address, nonce, signature}
+    API-->>Player: 15-min HMAC Session Token
+
+    Note over Player,API: 2. Gameplay & Off-Chain Scoring
+    Player->>API: POST /api/round-questions (Bearer Token)
+    API->>DB: Fetch 10 questions (answers hidden)
+    API-->>Player: Deliver 10 questions
+    Player->>API: POST /api/verify-round {roundId, answers} (Bearer Token)
+    API->>API: Score answers against source-of-truth bank
+    
+    Note over API,Contract: 3. Settlement & Payout
+    API->>Contract: resolve(round_id, won, score) [Signed by Verifier]
+    Contract->>Contract: Update Invariant: locked -= stake; owed += payout
+    Contract-->>API: RoundResolved Event
+    API-->>Player: Final Score, Payout Status & Tx URL
+    
+    Note over Player,Contract: 4. Non-Custodial Withdrawal
+    Player->>Contract: withdraw(player, token) [Signed in Freighter]
+    Contract->>Player: Transfer token payout to player wallet
 ```
-
-1. **Connect**: Sign in with your Freighter wallet.
-2. **Stake**: Choose **XLM** or **USDC** (e.g. 5 XLM).
-3. **Play**: Answer 10 randomized trivia questions against the clock.
-4. **Win**: Score 7/10 or higher to win up to **2.0x** your stake.
-5. **Withdraw**: Winnings accumulate in the contract and are withdrawable any time.
 
 ---
 
-## 📜 Smart Contract (Soroban)
+## 🗂 Monorepo Layout
 
-The core contract lives in [`contracts/quiza`](contracts/quiza) and manages staking, verifier resolution, balance tracking, and withdrawals. XLM and USDC are both handled through Stellar Asset Contract (SAC) token interfaces.
-
-| Network | Contract ID | Explorer |
-|---|---|---|
-| **Stellar Testnet** | Set via `QUIZA_CONTRACT_ID` in `.env` | [Stellar Expert (Testnet) ↗](https://stellar.expert/explorer/testnet) |
-| **Stellar Mainnet** | _Not deployed yet_ | [Stellar Expert ↗](https://stellar.expert/explorer/public) |
-
-### Core Methods
-
-- `stake(player, token, amount)` — Lock a stake and open a new quiz round.
-- `resolve(round_id, won, score)` — Called by the authorized backend verifier to credit winnings using the multiplier tiers.
-- `claim_timeout(round_id)` — Refund 100% of the stake if a round stays unresolved for 2 hours.
-- `withdraw(player, token)` — Send accumulated winnings to the player's wallet.
-
----
-
-## 🗂 Project Structure
-
-```
+```text
 quiza/
 ├── apps/
-│   ├── web/                   # Next.js + React + Tailwind CSS dashboard & game UI
-│   └── api/                   # Node.js + Fastify REST API (verifier, leaderboard, share cards)
+│   └── api/                   # Fastify + TypeScript backend API
+│       ├── src/               # Routes, challenge auth, worker queue, retry sweeper
+│       ├── test/              # Vitest API integration & security test suite
+│       └── docker-compose.yml # PostgreSQL container configuration
 ├── contracts/
-│   └── quiza/                 # Soroban smart contract (Rust → Wasm)
-├── packages/
-│   └── shared/                # Shared TypeScript types & Stellar helpers
-├── scripts/
-│   ├── deploy-contract.ts     # Build & deploy the contract to Stellar networks
-│   ├── fund-verifier.ts       # Fund the verifier account via Friendbot (testnet)
-│   └── seed-questions.ts      # Seed question bank into PostgreSQL
-├── docs/                      # Architecture & API documentation
-├── docker-compose.yml         # Local PostgreSQL
-├── CONTRIBUTING.md
-├── ROADMAP.md
-└── LICENSE
+│   └── quiza/                 # Soroban Rust smart contract
+│       ├── src/lib.rs         # Staking, accounting invariant, timeout, withdrawal
+│       ├── src/test.rs        # Comprehensive Soroban SDK test suite
+│       └── Cargo.toml         # Contract dependencies & compiler flags
+├── docs/                      # Technical documentation & architecture guides
+│   ├── architecture.md        # Deep dive into system components & data flows
+│   ├── smart-contracts.md     # Soroban contract API, storage layout & invariants
+│   ├── api.md                 # REST API endpoints, schemas & authentication
+│   ├── mobile.md              # Responsive layout & Freighter mobile roadmap
+│   ├── development.md         # Local development setup & dev-runner guide
+│   ├── deployment.md          # Testnet/mainnet deployment & ops procedures
+│   ├── testing.md             # Vitest, Cargo, and mock testing guides
+│   ├── troubleshooting.md     # Common error diagnostics & solutions
+│   ├── coding-standards.md    # Style guides, linting, and error handling
+│   ├── design-decisions.md    # Architecture Decision Records (ADRs)
+│   ├── contract-interface.md  # Detailed contract specifications
+│   └── known-limits.md        # Documented protocol constraints
+├── src/                       # Vite + React 19 frontend application
+│   ├── components/            # UI components (StakeModal, ShareModal, Navbar)
+│   ├── lib/quizaContract.js   # Soroban RPC client, Freighter bridge, refund helpers
+│   └── pages/                 # Views (Home, Quiz, Results, Profile, Leaderboard)
+├── scripts/                   # Development orchestrator & deployment scripts
+│   └── dev-runner.js          # Concurrent Fastify + Vite process runner
+├── .github/                   # CI/CD workflows, issue templates, community files
+├── CONTRIBUTING.md            # Contributor onboarding & PR conventions
+├── CODE_OF_CONDUCT.md         # Contributor Covenant v2.1
+├── SECURITY.md                # Security policy & coordinated disclosure process
+├── GOVERNANCE.md              # Project governance & RFC lifecycle
+├── CHANGELOG.md               # Keep a Changelog version history
+├── ROADMAP.md                 # Technical milestones & future phases
+├── SUPPORT.md                 # Support channels & community guidelines
+├── FAQ.md                     # Comprehensive player and developer FAQ
+├── LICENSE                    # MIT License
+└── package.json               # Root scripts and workspace dependencies
 ```
 
 ---
 
-## 🛠️ Tech Stack
-
-- **Blockchain**: Stellar (Horizon + Soroban RPC), Testnet by default
-- **Smart Contracts**: Rust, Soroban SDK, compiled to Wasm
-- **Wallet**: Freighter (`@stellar/freighter-api`), `@stellar/stellar-sdk`
-- **Frontend**: Next.js, React, TypeScript, Tailwind CSS, Framer Motion
-- **Backend**: Node.js, TypeScript, Fastify REST API
-- **Database**: PostgreSQL (rounds, sessions, leaderboards)
-- **Tooling**: Turborepo monorepo, Vitest, Docker Compose
-
----
-
-## 🚀 Quick Start
+## 🚀 Quick Start (Local Development)
 
 ### Prerequisites
 
-| Tool             | Version                |
-| ---------------- | ---------------------- |
-| Node.js          | ≥ 20.x                 |
-| npm              | Latest                 |
-| Docker           | For local PostgreSQL   |
-| Rust + Cargo     | Latest stable (for contracts) |
-| Stellar CLI      | Latest                 |
-| Freighter Wallet | Browser extension      |
+| Tool | Version Requirement | Purpose |
+| :--- | :--- | :--- |
+| **Node.js** | `>= 20.0.0` (LTS) | Frontend and Backend runtime |
+| **npm** | `>= 10.0.0` | Package manager |
+| **Docker** | Latest | PostgreSQL container for API persistence |
+| **Rust & Cargo** | Stable (1.80+) | Building Soroban contracts |
+| **Stellar CLI** | `>= 22.0.0` | Testing and deploying Soroban contracts |
+| **Freighter Wallet** | Browser extension | Stellar Testnet non-custodial wallet |
 
 ### 1. Clone & Install
 
 ```bash
-git clone https://github.com/your-username/quiza.git
-cd quiza
+git clone https://github.com/jotel-dev/Quiza.git
+cd Quiza
 npm install
+npm --prefix apps/api install
 ```
 
-### 2. Start Local Database
+### 2. Configure Environment
+
+Copy the example configuration to `.env`:
+
+```bash
+cp .env.example .env
+```
+
+### 3. Launch PostgreSQL
 
 ```bash
 docker compose up -d
-npm run db:push
 ```
 
-### 3. Configure Environment
+### 4. Start Development Servers
+
+Run both the Fastify backend and Vite frontend concurrently via the unified runner:
 
 ```bash
-cp apps/api/.env.example apps/api/.env
-cp apps/web/.env.example apps/web/.env.local
+npm run dev
 ```
 
-### 4. Launch the Stack
-
-```bash
-npx turbo dev
-```
-
-Or run components individually:
-
-```bash
-npm run dev:api   # Fastify API on http://localhost:3001
-npm run dev:web   # Next.js app on http://localhost:3000
-```
-
-### 5. Build & Deploy the Contract (Testnet)
-
-```bash
-cd contracts/quiza
-stellar contract build
-stellar contract deploy \
-  --wasm target/wasm32v1-none/release/quiza.wasm \
-  --source verifier-dev \
-  --network testnet
-```
-
-Copy the returned contract ID into `QUIZA_CONTRACT_ID` in both `.env` files.
+- **Frontend Web UI**: [http://localhost:5173](http://localhost:5173)
+- **Backend Fastify API**: [http://localhost:3001](http://localhost:3001)
+- **Health Check**: [http://localhost:3001/health](http://localhost:3001/health)
 
 ---
 
-## 🔑 Environment Variables
+## 🧪 Testing & Quality Assurance
 
-### Web (`apps/web/.env.local`)
-
-```env
-NEXT_PUBLIC_API_URL=http://localhost:3001
-NEXT_PUBLIC_STELLAR_NETWORK=testnet
-NEXT_PUBLIC_HORIZON_URL=https://horizon-testnet.stellar.org
-NEXT_PUBLIC_SOROBAN_RPC_URL=https://soroban-testnet.stellar.org
-NEXT_PUBLIC_QUIZA_CONTRACT_ID=your_contract_id
-```
-
-### API (`apps/api/.env`)
-
-```env
-PORT=3001
-DATABASE_URL=postgresql://quiza:quiza_dev@localhost:5432/quiza
-JWT_SECRET=replace-with-a-long-random-secret
-STELLAR_NETWORK=testnet
-HORIZON_URL=https://horizon-testnet.stellar.org
-SOROBAN_RPC_URL=https://soroban-testnet.stellar.org
-QUIZA_CONTRACT_ID=your_contract_id
-QUIZA_VERIFIER_PUBLIC_KEY=G...
-QUIZA_VERIFIER_SECRET=S...   # server-side only, authorizes resolve() calls
-ALLOWED_ORIGINS=http://localhost:3000
-```
-
-> ⚠️ The verifier secret is the **only** secret key in the system and belongs to the backend operator. Player secret keys are never requested or stored.
-
----
-
-## 🧪 Get Testnet XLM
-
-1. Install [Freighter Wallet](https://freighter.app).
-2. Switch to **Testnet** in Freighter settings.
-3. Fund your public key with [Stellar Friendbot](https://friendbot.stellar.org).
-4. Receive 10,000 test XLM instantly.
-
-To fund the verifier account:
+Quiza enforces strict automated testing across all layers:
 
 ```bash
-npx tsx scripts/fund-verifier.ts
+# 1. Run Backend API Integration Tests (Vitest)
+npm --prefix apps/api test
+
+# 2. Run Soroban Smart Contract Tests (Cargo)
+cd contracts/quiza && cargo test && cd ../..
+
+# 3. Run Soroban Linter (Clippy)
+cd contracts/quiza && cargo clippy -- -D warnings && cd ../..
+
+# 4. Run Mock Refund Integration Tests
+node scratch/test_claim_refund_mock.js
+
+# 5. Run Frontend Production Build & Linter
+npm run lint
+npm run build
 ```
 
 ---
 
-## 🧪 Testing
+## 📜 Deployed Smart Contracts
 
-| Suite              | Command                         | Notes                               |
-| ------------------ | ------------------------------- | ----------------------------------- |
-| API unit tests     | `npm run test:api`              | Vitest                              |
-| Web unit tests     | `npm run test:web`              | Component and hook tests            |
-| Contract tests     | `cd contracts/quiza && cargo test` | Soroban SDK test environment     |
-| Lint               | `npm run lint`                  | ESLint + TypeScript typecheck       |
-
----
-
-## 📚 Documentation
-
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** — System design, data flow, and database schema
-- **[docs/contract-deployment.md](docs/contract-deployment.md)** — Deploying the Soroban contract
-- **[docs/api-documentation.md](docs/api-documentation.md)** — REST API reference
-- **[docs/environment-variables.md](docs/environment-variables.md)** — Full variable list and validation rules
+| Network | Contract Identifier | Explorer |
+| :--- | :--- | :--- |
+| **Stellar Testnet** | `CBD7PCUZDB22HJV7LHO4QHRIEZXSWED5OHJ256623PVLT46XGSKSC7IV` | [Stellar Expert (Testnet) ↗](https://stellar.expert/explorer/testnet/contract/CBD7PCUZDB22HJV7LHO4QHRIEZXSWED5OHJ256623PVLT46XGSKSC7IV) |
+| **Native XLM (SAC)** | `CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC` | [Stellar Expert (Testnet) ↗](https://stellar.expert/explorer/testnet/contract/CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC) |
+| **USDC (SAC)** | `CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA` | [Stellar Expert (Testnet) ↗](https://stellar.expert/explorer/testnet/contract/CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA) |
+| **Stellar Mainnet** | *Targeted for Phase 5 release* | [Stellar Expert ↗](https://stellar.expert/explorer/public) |
 
 ---
 
 ## 🤝 Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) to get started. All skill levels welcome!
+We welcome contributions from open-source developers worldwide! Please review our [Contributing Guide](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) before submitting pull requests.
 
-## 🗺 Roadmap
-
-See [ROADMAP.md](ROADMAP.md) for planned features.
+---
 
 ## 💬 Community & Support
 
-Join our community to ask questions, chat with maintainers, and follow new releases:
+- **Telegram Community**: [https://t.me/nullifiersystem/1](https://t.me/nullifiersystem/1)
+- **GitHub Discussions**: [Ask questions & discuss RFCs](https://github.com/jotel-dev/Quiza/discussions)
+- **Support & Triage**: See [SUPPORT.md](SUPPORT.md)
+- **Security Inquiries**: Email `security@quiza.app` (See [SECURITY.md](SECURITY.md))
 
-👉 **[Join Quiza on Telegram](t.me/nullifiersystem/1)**
+---
 
 ## 📄 License
 
-Released under the [MIT License](LICENSE).
+This project is licensed under the [MIT License](LICENSE).
