@@ -120,10 +120,15 @@ function getHorizon(net = NETWORK) {
 let mockRoundCounter = 100;
 let mockPlayerBalances = new Map();
 let mockWithdrawShouldFail = false;
+let mockClaimTimeoutError = null;
 const MOCK_ADDRESS = "GD3VW6CXVC2IEP23QWLHY6E2TLJCJI436FTLAYI3VC73YETPSW2ZQ3DY";
 
 export function setMockWithdrawShouldFail(shouldFail) {
   mockWithdrawShouldFail = Boolean(shouldFail);
+}
+
+export function setMockClaimTimeoutError(err) {
+  mockClaimTimeoutError = err;
 }
 
 export function setMockPlayerBalance(bal, tokenSymbol = "XLM") {
@@ -562,6 +567,12 @@ export async function withdrawWinnings(signer, tokenAddress, network = NETWORK) 
 export async function claimTimeout(roundId, network = NETWORK) {
   if (IS_MOCK_MODE || isMockMode()) {
     console.log("[CONTRACT MOCK] claimTimeout called for round:", roundId);
+    if (mockClaimTimeoutError) {
+      const errToThrow = typeof mockClaimTimeoutError === "string"
+        ? new Error(mockClaimTimeoutError)
+        : mockClaimTimeoutError;
+      throw errToThrow;
+    }
     markRoundClaimed(roundId);
     mockPlayerBalances.set("XLM", 100000n);
     return { hash: `mock_claim_${roundId}` };
@@ -585,6 +596,38 @@ export async function claimTimeout(roundId, network = NETWORK) {
     console.error("claimTimeout error:", err);
     throw new Error(mapContractError(err));
   }
+}
+
+/**
+ * Checks whether an error indicates AlreadyResolved from the Soroban contract.
+ * Contract enum: contracts/quiza/src/lib.rs:
+ *   pub enum Error {
+ *       AlreadyInitialized = 1,
+ *       NotInitialized = 2,
+ *       Paused = 3,
+ *       InvalidScore = 4,
+ *       InvalidAmount = 5,
+ *       RoundNotFound = 6,
+ *       Unauthorized = 7,
+ *       AlreadyResolved = 8,
+ *       TimeoutNotReached = 9,
+ *       ZeroBalance = 10,
+ *       InsufficientPoolLiquidity = 11,
+ *       TokenNotAllowed = 12,
+ *       ScoreResultMismatch = 13,
+ *       StakeExceedsLimit = 14,
+ *       StakeBelowLimit = 15,
+ *   }
+ * Soroban error format: Error(Contract, #8)
+ */
+export function isAlreadyResolvedError(err) {
+  if (!err) return false;
+  const msg = typeof err === "string" ? err : err?.message || String(err);
+  return (
+    /AlreadyResolved\b/i.test(msg) ||
+    /Error\s*\(\s*Contract\s*,\s*#8\s*\)/.test(msg) ||
+    msg.includes("already been resolved or refunded")
+  );
 }
 
 /**
@@ -614,16 +657,29 @@ export async function claimRefund(roundId, network = NETWORK) {
 
   // 2. Run claim_timeout
   let claimTxHash = null;
+  let alreadyResolved = false;
   try {
     const claimRes = await claimTimeout(roundId, network);
     claimTxHash = claimRes?.hash || claimRes?.txHash || `mock_claim_${roundId}`;
   } catch (claimErr) {
-    // If round was already resolved earlier, check if contract has withdrawable balance
-    const bal = await getBalance(playerAddress, tokenAddress, network);
-    const msg = claimErr?.message || String(claimErr);
-    if ((msg.includes("AlreadyResolved") || msg.includes("error 8")) && bal > 0n) {
-      console.log(`Round ${roundId} was already resolved. Found contract balance of ${bal}. Proceeding to withdraw.`);
-      claimTxHash = "already_claimed";
+    if (isAlreadyResolvedError(claimErr)) {
+      alreadyResolved = true;
+      markRoundClaimed(roundId);
+      // Skip claim and inspect contract balance to determine if player won or lost
+      const bal = await getBalance(playerAddress, tokenAddress, network);
+      if (bal > 0n) {
+        console.log(`Round ${roundId} was already resolved. Found contract balance of ${bal}. Proceeding straight to withdraw.`);
+        claimTxHash = "already_resolved";
+      } else {
+        console.log(`Round ${roundId} was already resolved and contract balance is 0 (player lost or already withdrew).`);
+        return {
+          claimTxHash: "already_resolved",
+          withdrawTxHash: null,
+          won: false,
+          zeroBalance: true,
+          alreadyResolved: true,
+        };
+      }
     } else {
       throw claimErr;
     }
@@ -636,9 +692,11 @@ export async function claimRefund(roundId, network = NETWORK) {
     return {
       claimTxHash,
       withdrawTxHash,
+      won: true,
+      alreadyResolved,
     };
   } catch (withdrawErr) {
-    console.warn("claim_timeout succeeded, but withdraw failed:", withdrawErr);
+    console.warn("claim_timeout succeeded or skipped, but withdraw failed:", withdrawErr);
     const err = new Error(`Refund claimed on-chain, but withdrawal failed: ${withdrawErr?.message || withdrawErr}`);
     err.claimTxHash = claimTxHash;
     err.withdrawPending = true;

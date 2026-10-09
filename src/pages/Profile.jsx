@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { User, Wallet, CheckCircle2, XCircle } from "lucide-react";
-import { getRefundableRounds, claimRefund, retryWithdrawRefund, getExplorerTxUrl } from "../lib/quizaContract.js";
+import { User, Wallet, Trophy, CheckCircle2, XCircle } from "lucide-react";
+import { getRefundableRounds, claimRefund, retryWithdrawRefund, getExplorerTxUrl, isAlreadyResolvedError } from "../lib/quizaContract.js";
 
 function GlassCard({ children, className = "" }) {
   return (
@@ -48,11 +48,26 @@ export default function Profile({ stats, recentGames, walletAddress, onConnectWa
     setClaimErrors((prev) => ({ ...prev, [roundId]: null }));
     try {
       const res = await claimRefund(roundId);
-      const txHash = res?.withdrawTxHash || res?.claimTxHash || "confirmed";
-      const txUrl = getExplorerTxUrl(txHash);
-      setClaimedTxs((prev) => ({ ...prev, [roundId]: txUrl }));
-      setWithdrawPendingRounds((prev) => ({ ...prev, [roundId]: false }));
+      if (res?.withdrawTxHash) {
+        const txUrl = getExplorerTxUrl(res.withdrawTxHash);
+        setClaimedTxs((prev) => ({ ...prev, [roundId]: txUrl }));
+        setWithdrawPendingRounds((prev) => ({ ...prev, [roundId]: false }));
+      } else if (res?.zeroBalance || res?.won === false) {
+        // Round already resolved on-chain and contract balance is 0 (player lost or settled).
+        // No error to show; remove from refundable list.
+        setRefundableRounds((prev) => prev.filter((r) => r.roundId.toString() !== roundId.toString()));
+        setWithdrawPendingRounds((prev) => ({ ...prev, [roundId]: false }));
+      } else if (res?.claimTxHash) {
+        const txUrl = getExplorerTxUrl(res.claimTxHash);
+        setClaimedTxs((prev) => ({ ...prev, [roundId]: txUrl }));
+        setWithdrawPendingRounds((prev) => ({ ...prev, [roundId]: false }));
+      }
     } catch (err) {
+      if (isAlreadyResolvedError(err)) {
+        // Fallback: If claim_timeout threw AlreadyResolved, don't show an error
+        setRefundableRounds((prev) => prev.filter((r) => r.roundId.toString() !== roundId.toString()));
+        return;
+      }
       if (err?.withdrawPending) {
         setWithdrawPendingRounds((prev) => ({ ...prev, [roundId]: true }));
       }

@@ -32,6 +32,9 @@ jobs:
       - name: Run Root Linter
         run: npm run lint
 
+      - name: Run Frontend & Refund Tests
+        run: npm test
+
       - name: Build Frontend Production Bundle
         run: npm run build
 
