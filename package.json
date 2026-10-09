@@ -27,7 +27,7 @@
     "autoprefixer": "^10.5.2",
     "ethers": "^6.17.0",
     "express": "^5.2.1",
-    "firebase": "^12.15.0",
+    "firebase": "^12.19.0",
     "firebase-admin": "^14.1.0",
     "framer-motion": "^12.42.2",
     "googleapis": "^173.0.0",
