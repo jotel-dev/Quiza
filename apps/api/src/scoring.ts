@@ -7,7 +7,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Questions bank path (located in apps/api/data/questions.json)
-const questionsJsonPath = path.resolve(__dirname, "../../data/questions.json");
+const primaryPath = path.resolve(__dirname, "../data/questions.json");
+const fallbackPath = path.resolve(__dirname, "../../data/questions.json");
+const questionsJsonPath = fs.existsSync(primaryPath) ? primaryPath : fallbackPath;
 
 export interface Question {
   id: string;
