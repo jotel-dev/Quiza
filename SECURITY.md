@@ -15,7 +15,6 @@ Security updates are actively applied to the following components:
 | **Soroban Smart Contract** (`contracts/quiza`) | Supported | `main` | Stellar Testnet / Mainnet |
 | **Fastify Backend API** (`apps/api`) | Supported | `main` | Production / Staging |
 | **Frontend Web App** (`src/`) | Supported | `main` | Web Client |
-| Legacy Celo Contracts (`contracts/`) | **Deprecated** | None | Alfajores / Celo Mainnet |
 
 ---
 
@@ -77,7 +76,6 @@ The following items are outside the scope of our security vulnerability program:
 - Phishing or social engineering directed at Quiza community members.
 - Volumetric Denial of Service (DDoS) against cloud infrastructure.
 - Issues in third-party services (e.g., Stellar Horizon / Soroban public RPC testnet downtime).
-- Bugs in already deprecated legacy Celo/Firebase code paths slated for deletion.
 
 ---
 

@@ -1,6 +1,6 @@
 # Coding Standards & Guidelines
 
-To ensure the Quiza codebase remains robust, maintainable, and aligned with open-source infrastructure projects like Kubernetes, Rust, and OpenZeppelin, all contributors must adhere to these coding standards.
+To ensure the Quiza codebase remains robust, maintainable, and aligned with open-source infrastructure projects like Kubernetes, Rust, and Stellar, all contributors must adhere to these coding standards.
 
 ---
 

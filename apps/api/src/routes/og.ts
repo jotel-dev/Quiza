@@ -137,7 +137,7 @@ export const ogRoute: FastifyPluginAsync = async (fastify) => {
 
   <!-- Bottom CTA Banner -->
   <text x="600" y="590" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="700" fill="#94A3B8" text-anchor="middle">
-    Play &amp; Stake on Quiza • quiza.vercel.app
+    Play &amp; Stake on Quiza • quiza.app
   </text>
 </svg>
     `.trim();

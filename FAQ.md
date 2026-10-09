@@ -48,7 +48,7 @@ Quiza uses **Freighter SEP-53 cryptographic message signing** for session authen
 
 ## 💻 Developer & Architecture Questions
 
-### Why did Quiza migrate from EVM (Celo) to Stellar Soroban?
+### Why is Quiza built on Stellar Soroban?
 1. **Predictable Sub-5-Second Finality**: Stellar settles in a single consensus round (~4–5 seconds) without block reorgs or pending mempool delays.
 2. **Minimal Transaction Fees**: Staking and withdrawing cost fractions of a cent ($< \$0.0001$), making micro-stakes practical.
 3. **Robust Security & Checked Math**: Soroban contracts are compiled from Rust to Wasm, preventing reentrancy vulnerabilities and enforcing strict checked integer arithmetic.

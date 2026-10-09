@@ -4,7 +4,7 @@
 - **Target Language**: Rust (compiled to `wasm32v1-none` or `wasm32-unknown-unknown`)
 - **SDK**: `soroban-sdk = "26.1.1"` (pinned by `stellar-cli 27.0.0`)
 - **Compatibility**: Stellar Protocol 22 / Soroban Environment v26
-- **Upgradeability**: **Intentionally non-upgradeable** (matching `contracts/Quiza.sol`). Once deployed, contract bytecode is permanent.
+- **Upgradeability**: **Intentionally non-upgradeable**. Once deployed, contract bytecode is permanent.
 
 ---
 
@@ -200,22 +200,11 @@ All events are emitted via `env.events().publish(...)`:
 
 ---
 
-## 6. Phase 3 Integration Notes (Decimals & Formatting)
-
-In Celo/EVM, CELO and cUSD used 18 decimal places with ethers.js formatting helpers (`formatEther`, `parseEther`, `parseUnits`, `formatUnits`).
-
-### Grep Audit of EVM Formatting / 18 Decimals in `src/`:
-1. `src/lib/quizaContract.js:20`: `nativeCurrency: { name: "CELO", symbol: "CELO", decimals: 18 }`
-2. `src/lib/quizaContract.js:27`: `nativeCurrency: { name: "CELO", symbol: "CELO", decimals: 18 }`
-3. `src/lib/quizaContract.js:178`: `parseFloat(formatEther(celoBalance)).toFixed(4)`
-4. `src/lib/quizaContract.js:179`: `parseFloat(formatUnits(cusdBalance, 18)).toFixed(4)`
-5. `src/lib/quizaContract.js:216`: `parseEther(amountInCelo)`
-6. `src/lib/quizaContract.js:224`: `parseUnits(amountInCUSD, 18)`
-7. `src/pages/Results.jsx:89-90, 101, 130-131, 142, 159`: BigInt `0n` comparisons.
+## 6. Token Decimals & Stroop Conversion Standards
 
 ### Stellar Standard:
 - Stellar base units have **7 decimal places** (1 XLM = $10^7$ stroops; USDC SAC also standardizes on 7 decimals).
 - All contract amounts in Soroban use signed 128-bit integers (`i128`).
-- In Phase 3, ethers helpers will be replaced with `@stellar/stellar-sdk` conversion utilities:
+- Amount conversion utilities:
   - Stroop / base units to human-readable: `Number(amount) / 10_000_000`
   - Human-readable to base units: `BigInt(Math.round(amount * 10_000_000))`

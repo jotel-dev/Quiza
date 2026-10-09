@@ -2,7 +2,7 @@
 
 Thank you for your interest in contributing to **Quiza**! We are building open-source, non-custodial gaming infrastructure on Stellar and Soroban, and we welcome contributions from developers, technical writers, security researchers, and Web3 enthusiasts of all backgrounds.
 
-To maintain the high engineering standards expected of infrastructure-grade software (in the tradition of projects like Kubernetes, Rust, OpenZeppelin, and Stellar), please take a few moments to review these guidelines before submitting code or documentation.
+To maintain the high engineering standards expected of infrastructure-grade software (in the tradition of projects like Kubernetes, Rust, and Stellar), please take a few moments to review these guidelines before submitting code or documentation.
 
 ---
 

@@ -55,7 +55,7 @@ export const shareCardRoute: FastifyPluginAsync = async (fastify) => {
     const isWin = query.won === "true";
 
     const proto = (request.headers["x-forwarded-proto"] as string) || "https";
-    const host = request.headers.host || "quiza.vercel.app";
+    const host = request.headers.host || "quiza.app";
     // Prefer PUBLIC_BASE_URL over Host header
     const baseUrl = config.PUBLIC_BASE_URL || `${proto}://${host}`;
 

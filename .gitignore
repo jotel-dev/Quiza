@@ -27,11 +27,6 @@ dist-ssr
 .env
 .env.*
 !.env.example
-
-# Hardhat
-cache/
-artifacts/
-
 # Database
 data/
 .data/

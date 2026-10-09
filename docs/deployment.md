@@ -126,21 +126,11 @@ npm run build
 ```
 Vite generates optimized production assets in the `dist/` directory.
 
-### 3.2. Hosting Providers (Vercel / Cloudflare Pages / AWS S3 + CloudFront)
+### 3.2. Hosting Providers (Cloudflare Pages / AWS S3 + CloudFront / Netlify)
 - **Root Directory**: `.`
 - **Build Command**: `npm run build`
 - **Output Directory**: `dist`
-- **SPA Routing**: Single Page Apps require all non-static paths to route to `/index.html`. Ensure `vercel.json` or Cloudflare rewrites redirect non-asset routes to `index.html`.
-
-Example `vercel.json`:
-```json
-{
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "https://api.quiza.app/api/$1" },
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
-}
-```
+- **SPA Routing**: Single Page Apps require all non-static paths to route to `/index.html`. Ensure hosting rewrites redirect non-asset routes to `index.html`.
 
 ---
 
