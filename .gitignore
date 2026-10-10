@@ -28,9 +28,10 @@ dist-ssr
 .env.*
 !.env.example
 # Database
-data/
 .data/
 *.sqlite*
+!apps/api/data/
+!apps/api/data/questions.json
 
 # Rust / Soroban
 target/

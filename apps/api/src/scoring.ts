@@ -6,10 +6,23 @@ import { createHash } from "crypto";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Questions bank path (located in apps/api/data/questions.json)
-const primaryPath = path.resolve(__dirname, "../data/questions.json");
-const fallbackPath = path.resolve(__dirname, "../../data/questions.json");
-const questionsJsonPath = fs.existsSync(primaryPath) ? primaryPath : fallbackPath;
+function getQuestionBankPath(): string {
+  const candidates = [
+    path.resolve(__dirname, "../data/questions.json"),
+    path.resolve(__dirname, "../../data/questions.json"),
+    path.resolve(process.cwd(), "apps/api/data/questions.json"),
+    path.resolve(process.cwd(), "data/questions.json"),
+    path.resolve(__dirname, "../../../apps/api/data/questions.json"),
+  ];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  return candidates[0];
+}
+
+const questionsJsonPath = getQuestionBankPath();
 
 export interface Question {
   id: string;
