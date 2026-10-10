@@ -72,19 +72,19 @@ sequenceDiagram
     Player->>API: GET /api/challenge?address=G...
     API-->>Player: Challenge Nonce
     Player->>Player: Sign nonce via Freighter SEP-53
-    Player->>API: POST /api/session {address, nonce, signature}
+    Player->>API: POST /api/session (address, nonce, signature)
     API-->>Player: 15-min HMAC Session Token
 
     Note over Player,API: 2. Gameplay & Off-Chain Scoring
-    Player->>API: POST /api/round-questions (Bearer Token)
+    Player->>API: POST /api/round-questions [Bearer Token]
     API->>DB: Fetch 10 questions (answers hidden)
     API-->>Player: Deliver 10 questions
-    Player->>API: POST /api/verify-round {roundId, answers} (Bearer Token)
+    Player->>API: POST /api/verify-round [Bearer Token]
     API->>API: Score answers against source-of-truth bank
     
     Note over API,Contract: 3. Settlement & Payout
     API->>Contract: resolve(round_id, won, score) [Signed by Verifier]
-    Contract->>Contract: Update Invariant: locked -= stake; owed += payout
+    Contract->>Contract: Update Invariant (locked -= stake, owed += payout)
     Contract-->>API: RoundResolved Event
     API-->>Player: Final Score, Payout Status & Tx URL
     
