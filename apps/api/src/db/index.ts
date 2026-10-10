@@ -24,8 +24,26 @@ export async function getDb(): Promise<DbClient> {
 
   const databaseUrl = process.env.DATABASE_URL;
 
+  if (process.env.NODE_ENV === "production" && (!databaseUrl || databaseUrl.trim().length === 0)) {
+    throw new Error("DATABASE_URL environment variable is required in production. Embedded PGlite is disabled in production.");
+  }
+
   if (databaseUrl && databaseUrl.trim().length > 0) {
-    const pool = new pg.Pool({ connectionString: databaseUrl });
+    let connString = databaseUrl;
+    if (process.env.NODE_ENV === "production") {
+      try {
+        const parsedUrl = new URL(databaseUrl);
+        if (!parsedUrl.searchParams.has("sslmode")) {
+          parsedUrl.searchParams.set("sslmode", "require");
+        }
+        connString = parsedUrl.toString();
+      } catch {
+        if (!connString.includes("sslmode=")) {
+          connString += (connString.includes("?") ? "&" : "?") + "sslmode=require";
+        }
+      }
+    }
+    const pool = new pg.Pool({ connectionString: connString });
     dbInstance = {
       async query<T = any>(text: string, params?: any[]): Promise<QueryResult<T>> {
         const res = await pool.query(text, params);

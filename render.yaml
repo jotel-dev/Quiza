@@ -1,0 +1,53 @@
+services:
+  - type: web
+    name: quiza-api
+    runtime: docker
+    dockerfilePath: apps/api/Dockerfile
+    dockerContext: apps/api
+    plan: starter
+    region: oregon
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: HOST
+        value: 0.0.0.0
+      - key: TRUST_PROXY
+        value: "1"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: quiza-db
+          property: connectionString
+      - key: QUIZA_CONTRACT_ID
+        value: CBD7PCUZDB22HJV7LHO4QHRIEZXSWED5OHJ256623PVLT46XGSKSC7IV
+      - key: QUIZA_ADMIN_PUBLIC_KEY
+        value: GD3VW6CXVC2IEP23QWLHY6E2TLJCJI436FTLAYI3VC73YETPSW2ZQ3DY
+      - key: QUIZA_VERIFIER_PUBLIC_KEY
+        value: GCMKX5CZ4UCWKKUMGQ3WDEJ4AFCNCCJW5R54IWZH7BE6RK6H2KG45QCU
+      - key: STELLAR_NETWORK
+        value: testnet
+      - key: STELLAR_NETWORK_PASSPHRASE
+        value: "Test SDF Network ; September 2015"
+      - key: HORIZON_URL
+        value: https://horizon-testnet.stellar.org
+      - key: SOROBAN_RPC_URL
+        value: https://soroban-testnet.stellar.org
+      - key: ALLOWED_ORIGINS
+        value: https://quiza-alpha.vercel.app,http://localhost:5173
+      - key: PUBLIC_BASE_URL
+        value: https://quiza-alpha.vercel.app
+      # Secrets (sync: false ensures no sensitive credentials exist in git)
+      - key: QUIZA_ROUND_SECRET
+        sync: false
+      - key: QUIZA_VERIFIER_SECRET_KEY
+        sync: false
+
+databases:
+  - name: quiza-db
+    databaseName: quiza
+    user: quiza
+    plan: starter
+    region: oregon
+    postgresMajorVersion: "16"

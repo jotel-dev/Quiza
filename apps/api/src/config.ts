@@ -33,6 +33,7 @@ const configSchema = z.object({
   HORIZON_URL: z.string().url().default("https://horizon-testnet.stellar.org"),
   PUBLIC_BASE_URL: z.string().optional().default("http://localhost:5173"),
   DATABASE_URL: z.string().optional(),
+  TRUST_PROXY: z.coerce.number().int().min(0).default(0),
 });
 
 function loadConfig() {
@@ -49,6 +50,7 @@ function loadConfig() {
     HORIZON_URL: process.env.HORIZON_URL || process.env.VITE_HORIZON_URL,
     PUBLIC_BASE_URL: process.env.PUBLIC_BASE_URL,
     DATABASE_URL: process.env.DATABASE_URL,
+    TRUST_PROXY: process.env.TRUST_PROXY ?? 0,
   };
 
   const parsed = configSchema.safeParse(raw);

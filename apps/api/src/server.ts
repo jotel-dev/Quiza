@@ -15,8 +15,9 @@ import { challengeRoute } from "./routes/challenge.js";
 import { roundStatusRoute } from "./routes/round-status.js";
 import { healthRoute } from "./routes/health.js";
 
-export async function buildServer(): Promise<FastifyInstance> {
+export async function buildServer(opts?: { trustProxy?: any }): Promise<FastifyInstance> {
   const app = fastify({
+    trustProxy: opts?.trustProxy !== undefined ? opts.trustProxy : config.TRUST_PROXY,
     logger: {
       level: process.env.NODE_ENV === "test" ? "silent" : "info",
       serializers: {
