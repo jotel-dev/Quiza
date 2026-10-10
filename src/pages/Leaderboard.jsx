@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Trophy, Medal, Target, Flame, ChevronRight, Loader2, Search, Share2 } from "lucide-react";
 import ShareModal from "../components/ShareModal";
+import { apiFetch } from "../lib/api.js";
 
 const getMedalIcon = (index) => {
   if (index === 0) return <span className="text-2xl drop-shadow-md">🥇</span>;
@@ -16,15 +17,17 @@ export default function Leaderboard({ walletAddress }) {
   const [currentUserRank, setCurrentUserRank] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
   const [shareData, setShareData] = useState(null);
+  const requestSeq = useRef(0);
 
-  useEffect(() => {
-    let isMounted = true;
+  const fetchLeaderboard = useCallback(() => {
+    const seq = ++requestSeq.current;
     setLoading(true);
-    
-    fetch('/api/leaderboard')
+    setErrorMsg(null);
+
+    apiFetch('/api/leaderboard')
       .then(res => res.json())
       .then(data => {
-        if (!isMounted) return;
+        if (seq !== requestSeq.current) return;
         if (data.error) {
           setErrorMsg(data.error);
           setLoading(false);
@@ -63,14 +66,15 @@ export default function Leaderboard({ walletAddress }) {
       })
       .catch(err => {
         console.error("Leaderboard fetch error:", err);
-        if (isMounted) {
-          setErrorMsg(err.message || "Failed to fetch leaderboard");
-          setLoading(false);
-        }
+        if (seq !== requestSeq.current) return;
+        setErrorMsg(err.message || "Failed to fetch leaderboard");
+        setLoading(false);
       });
-
-    return () => { isMounted = false; };
   }, [walletAddress]);
+
+  useEffect(() => {
+    fetchLeaderboard();
+  }, [fetchLeaderboard]);
 
   const bgStyle = "bg-white text-slate-800";
   const cardStyle = "bg-white border-slate-100 shadow-[0_8px_30px_rgba(79,70,229,0.08)]";
@@ -90,6 +94,14 @@ export default function Leaderboard({ walletAddress }) {
         <div className="text-red-500 mb-4 text-4xl">⚠️</div>
         <p className="font-semibold text-red-600 mb-2">Error Loading Leaderboard</p>
         <p className="text-sm text-slate-500 text-center max-w-md">{errorMsg}</p>
+        <div className="mt-4">
+          <button
+            onClick={fetchLeaderboard}
+            className="flex items-center gap-1.5 bg-[#4F46E5] text-white text-xs font-semibold px-3 py-2 rounded-xl shadow-md shadow-indigo-200 hover:opacity-90 transition active:scale-95"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }

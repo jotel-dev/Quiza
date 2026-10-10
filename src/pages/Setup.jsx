@@ -2,17 +2,21 @@ import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, Loader2, Info } from "lucide-react";
+import { apiFetch } from "../lib/api.js";
 
 export default function Setup({ onContinue }) {
   const location = useLocation();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   
   const [category, setCategory] = useState(location.state?.category || "Mixed");
   const [difficulty, setDifficulty] = useState("Mixed");
 
-  useEffect(() => {
-    fetch("/api/question-stats")
+  const fetchStats = () => {
+    setLoading(true);
+    setError(null);
+    apiFetch("/api/question-stats")
       .then(res => res.json())
       .then(data => {
         setStats(data);
@@ -20,14 +24,37 @@ export default function Setup({ onContinue }) {
       })
       .catch(err => {
         console.error(err);
+        setError(err.message || "Failed to load question stats");
         setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    fetchStats();
   }, []);
 
-  if (loading || !stats) {
+  if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center p-4">
         <Loader2 className="animate-spin text-[#4F46E5]" size={32} />
+      </div>
+    );
+  }
+
+  if (error || !stats) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-6">
+        <div className="text-red-500 mb-4 text-4xl">⚠️</div>
+        <p className="font-semibold text-red-600 mb-2">Error Loading Setup</p>
+        <p className="text-sm text-slate-500 text-center max-w-md">{error || "Failed to load question stats"}</p>
+        <div className="mt-4">
+          <button
+            onClick={fetchStats}
+            className="flex items-center gap-1.5 bg-[#4F46E5] text-white text-xs font-semibold px-3 py-2 rounded-xl shadow-md shadow-indigo-200 hover:opacity-90 transition active:scale-95"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }

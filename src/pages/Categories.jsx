@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, FlaskConical, Landmark, CircleDot, Film, Globe2, Loader2, Sparkles } from "lucide-react";
+import { apiFetch } from "../lib/api.js";
 
 const CATEGORY_META = {
   "Math": { icon: FlaskConical, color: "#4F46E5" },
@@ -26,9 +27,12 @@ export default function Categories() {
   const [searchQuery, setSearchQuery] = useState("");
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  useEffect(() => {
-    fetch("/api/question-stats")
+  const fetchCategories = () => {
+    setLoading(true);
+    setError(null);
+    apiFetch("/api/question-stats")
       .then(res => res.json())
       .then(data => {
         if (data && data.categories) {
@@ -46,8 +50,13 @@ export default function Categories() {
       })
       .catch(err => {
         console.error("Failed to fetch categories:", err);
+        setError(err.message || "Failed to load categories");
         setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    fetchCategories();
   }, []);
 
   const filteredCategories = categories.filter((cat) =>
@@ -77,6 +86,20 @@ export default function Categories() {
         {loading ? (
           <div className="h-full flex items-center justify-center min-h-[200px]">
             <Loader2 className="animate-spin text-[#4F46E5]" size={32} />
+          </div>
+        ) : error ? (
+          <div className="h-full flex flex-col items-center justify-center min-h-[200px] p-6 text-center">
+            <div className="text-red-500 mb-4 text-4xl">⚠️</div>
+            <p className="font-semibold text-red-600 mb-2">Error Loading Categories</p>
+            <p className="text-sm text-slate-500 text-center max-w-md">{error}</p>
+            <div className="mt-4">
+              <button
+                onClick={fetchCategories}
+                className="flex items-center gap-1.5 bg-[#4F46E5] text-white text-xs font-semibold px-3 py-2 rounded-xl shadow-md shadow-indigo-200 hover:opacity-90 transition active:scale-95"
+              >
+                Retry
+              </button>
+            </div>
           </div>
         ) : filteredCategories.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">

@@ -3,6 +3,7 @@ import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { Loader2, Home, Grid3x3, Timer, Trophy, Gift, Award, Wallet, User, Settings, Volume2, VolumeX } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { isMuted, toggleMute } from "./lib/sound";
+import { apiFetch } from "./lib/api.js";
 
 const nav = [
   { icon: Home, label: "Home" },
@@ -233,7 +234,7 @@ export default function QuizaApp() {
     try {
       let verified;
       if (stakeInfo.type === "practice") {
-        const res = await fetch("/api/verify-practice", {
+        const res = await apiFetch("/api/verify-practice", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

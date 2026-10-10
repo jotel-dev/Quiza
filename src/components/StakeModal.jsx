@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Wallet, X, Coins, ChevronRight, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { connectWallet, ensureNetwork, stakeCelo, stakeCUSD, getWalletBalances, getRoundIdFromReceipt, NETWORK } from "../lib/quizaContract";
+import { apiFetch } from "../lib/api.js";
 
 const INITIAL_TOKENS = [
   { symbol: "XLM", name: "Stellar Lumens", color: "#F26722", balance: "0.0000" },
@@ -101,7 +102,7 @@ export default function StakeModal({ isOpen, onClose, onStaked, onConnect, walle
     const finalUsername = username.trim() || fullAddress.slice(0, 6) + "...";
     localStorage.setItem("quiza_username", finalUsername);
     try {
-      await fetch("/api/user", {
+      await apiFetch("/api/user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ address: fullAddress, username: finalUsername }),
