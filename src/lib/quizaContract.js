@@ -18,6 +18,7 @@ import {
   formatStroops,
   mapContractError,
 } from "./stellar.js";
+import { apiFetch } from "./api.js";
 
 // --- Network & Configuration ----------------------------------------------
 const getEnv = (key, fallback) => {
@@ -1005,7 +1006,9 @@ export async function getOrCreateAuthSessionToken(address, network = NETWORK) {
   }
 
   // 1. Fetch challenge nonce from /api/challenge
-  const challengeRes = await fetch(`/api/challenge?address=${encodeURIComponent(address)}`);
+  const challengeRes = await apiFetch(`/api/challenge?address=${encodeURIComponent(address)}`, {
+    throwOnHttpError: false,
+  });
   if (!challengeRes.ok) {
     throw new Error("Failed to request authentication challenge");
   }
@@ -1039,8 +1042,9 @@ export async function getOrCreateAuthSessionToken(address, network = NETWORK) {
   }
 
   // 3. Exchange signature for 15-minute session token via POST /api/session
-  const sessionRes = await fetch("/api/session", {
+  const sessionRes = await apiFetch("/api/session", {
     method: "POST",
+    throwOnHttpError: false,
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       address,
@@ -1081,7 +1085,7 @@ export async function fetchRoundQuestions(params) {
 
   // Practice mode does NOT require a wallet signature or popup
   if (type === "practice") {
-    return await fetch("/api/round-questions", {
+    return await apiFetch("/api/round-questions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -1097,7 +1101,7 @@ export async function fetchRoundQuestions(params) {
   // Daily and standard rounds require wallet signature / session token
   const sessionToken = await getOrCreateAuthSessionToken(walletAddress);
 
-  return await fetch("/api/round-questions", {
+  return await apiFetch("/api/round-questions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -1115,6 +1119,45 @@ export async function fetchRoundQuestions(params) {
 }
 
 /**
+ * Polls GET /api/round-status if POST /api/verify-round times out or encounters network loss.
+ * Polls every 3s for up to 2 minutes (120s) and returns the full result shape.
+ */
+async function pollRoundStatus(roundId, sessionToken, maxDurationMs = 120000, intervalMs = 3000) {
+  const startTime = Date.now();
+  while (Date.now() - startTime < maxDurationMs) {
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    try {
+      const statusRes = await apiFetch(
+        `/api/round-status?roundId=${encodeURIComponent(roundId)}`,
+        {
+          throwOnHttpError: false,
+          headers: sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {},
+        }
+      );
+      if (statusRes.ok) {
+        const data = await statusRes.json();
+        if (data.status === "resolved" || data.status === "scored") {
+          return {
+            won: Boolean(data.won),
+            correctCount: data.correctCount ?? data.score ?? 0,
+            total: data.total ?? 5,
+            txHash: data.txHash || null,
+            correctAnswers: data.correctAnswers || null,
+          };
+        }
+        if (data.status === "permanent_failure") {
+          throw new Error(data.errorMessage || "Round verification permanently failed on-chain.");
+        }
+      }
+    } catch (err) {
+      if (err.message && err.message.includes("permanently failed")) throw err;
+      // Continue polling through transient network errors
+    }
+  }
+  return null;
+}
+
+/**
  * Submits round answers to the verifier API using the authenticated session token.
  */
 export async function submitRoundForVerification({
@@ -1126,29 +1169,13 @@ export async function submitRoundForVerification({
 }) {
   let sessionToken = await getOrCreateAuthSessionToken(address);
 
-  let res = await fetch("/api/verify-round", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${sessionToken}`,
-    },
-    body: JSON.stringify({
-      roundId: roundId.toString(),
-      questionIds,
-      submittedAnswers,
-      address,
-      secretToken,
-      sessionToken,
-    }),
-  });
+  let res = null;
+  let networkOrTimeout = false;
 
-  // Session edge case: If the 15-minute session expired between question loading and verification,
-  // the server returns 401. Clear session cache, re-sign (1 popup), and retry once.
-  if (res.status === 401) {
-    clearAuthSession();
-    sessionToken = await getOrCreateAuthSessionToken(address);
-    res = await fetch("/api/verify-round", {
+  try {
+    res = await apiFetch("/api/verify-round", {
       method: "POST",
+      throwOnHttpError: false,
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${sessionToken}`,
@@ -1162,6 +1189,53 @@ export async function submitRoundForVerification({
         sessionToken,
       }),
     });
+  } catch (err) {
+    if (err.name === "TimeoutError" || err.name === "NetworkError") {
+      networkOrTimeout = true;
+    } else {
+      throw err;
+    }
+  }
+
+  // Session edge case: If the 15-minute session expired between question loading and verification,
+  // the server returns 401. Clear session cache, re-sign (1 popup), and retry once.
+  if (res && res.status === 401) {
+    clearAuthSession();
+    sessionToken = await getOrCreateAuthSessionToken(address);
+    try {
+      res = await apiFetch("/api/verify-round", {
+        method: "POST",
+        throwOnHttpError: false,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${sessionToken}`,
+        },
+        body: JSON.stringify({
+          roundId: roundId.toString(),
+          questionIds,
+          submittedAnswers,
+          address,
+          secretToken,
+          sessionToken,
+        }),
+      });
+    } catch (err) {
+      if (err.name === "TimeoutError" || err.name === "NetworkError") {
+        networkOrTimeout = true;
+      } else {
+        throw err;
+      }
+    }
+  }
+
+  // If verify-round POST timed out or network was lost, poll status instead of showing an error
+  if (networkOrTimeout || (res && res.status >= 502)) {
+    console.warn(`[verify-round] Network or timeout encountered on POST. Polling /api/round-status for round ${roundId}...`);
+    const polledResult = await pollRoundStatus(roundId, sessionToken, 120000, 3000);
+    if (polledResult) {
+      return polledResult;
+    }
+    throw new Error("The game server took too long to complete your round. Please check your profile.");
   }
 
   if (!res.ok) {

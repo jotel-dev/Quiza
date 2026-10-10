@@ -137,15 +137,16 @@ export const verifyRoundRoute: FastifyPluginAsync = async (fastify) => {
 
     // STEP 3 REQUIREMENT: Persist score first BEFORE sending resolve!
     await db.query(
-      `INSERT INTO round_sessions (round_id, player, status, score, correct_count, total, won, created_at)
-       VALUES ($1, $2, 'scored', $3, $4, $5, $6, NOW())
+      `INSERT INTO round_sessions (round_id, player, status, score, correct_count, total, won, correct_answers, created_at)
+       VALUES ($1, $2, 'scored', $3, $4, $5, $6, $7, NOW())
        ON CONFLICT (round_id) DO UPDATE SET
          status = 'scored',
          score = EXCLUDED.score,
          correct_count = EXCLUDED.correct_count,
          total = EXCLUDED.total,
-         won = EXCLUDED.won`,
-      [roundId, address, correctCount, correctCount, total, won]
+         won = EXCLUDED.won,
+         correct_answers = EXCLUDED.correct_answers`,
+      [roundId, address, correctCount, correctCount, total, won, JSON.stringify(correctAnswers)]
     );
 
     // Verify round on-chain before resolving

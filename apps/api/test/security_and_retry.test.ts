@@ -266,18 +266,21 @@ describe("Security, Ownership Proof & Resolve Retry Tests", () => {
         [testRoundId, playerA.publicKey()]
       );
 
+      const { sessionToken: playerAToken } = createSessionToken(playerA.publicKey());
+
       // Poll round status
       const statusRes = await app.inject({
         method: "GET",
         url: `/api/round-status?roundId=${testRoundId}`,
+        headers: {
+          authorization: `Bearer ${playerAToken}`,
+        },
       });
 
       expect(statusRes.statusCode).toBe(200);
       const statusData = JSON.parse(statusRes.payload);
       expect(statusData.roundId).toBe(testRoundId);
       expect(statusData.status).toBe("failed");
-      expect(statusData.score).toBe(8);
-      expect(statusData.won).toBe(true);
       expect(statusData.resolved).toBe(false);
       expect(statusData.errorMessage).toContain("Simulated transient network timeout");
 
@@ -293,12 +296,16 @@ describe("Security, Ownership Proof & Resolve Retry Tests", () => {
       const resolvedRes = await app.inject({
         method: "GET",
         url: `/api/round-status?roundId=${testRoundId}`,
+        headers: {
+          authorization: `Bearer ${playerAToken}`,
+        },
       });
 
       expect(resolvedRes.statusCode).toBe(200);
       const resolvedData = JSON.parse(resolvedRes.payload);
       expect(resolvedData.status).toBe("resolved");
       expect(resolvedData.resolved).toBe(true);
+      expect(resolvedData.score).toBe(8);
       expect(resolvedData.txHash).toBe("tx-retry-success-123");
     });
 
