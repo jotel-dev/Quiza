@@ -1,21 +1,4 @@
-import fs from "fs";
-import path from "path";
-
-function loadQuestions() {
-  const candidates = [
-    path.resolve(process.cwd(), "apps/api/data/questions.json"),
-    new URL("../apps/api/data/questions.json", import.meta.url).pathname,
-    path.resolve(process.cwd(), "data/questions.json"),
-  ];
-  for (const candidate of candidates) {
-    try {
-      if (fs.existsSync(candidate)) {
-        return JSON.parse(fs.readFileSync(candidate, "utf-8"));
-      }
-    } catch {}
-  }
-  return { categories: [], questions: [] };
-}
+import { loadQuestions } from "./_store.js";
 
 export default function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
